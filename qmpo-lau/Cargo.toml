@@ -7,7 +7,7 @@ description = "Registration tool for qmpo - Open Directory With Browser"
 
 [dependencies]
 qmpo-core = { path = "../qmpo-core" }
-clap = { version = "4.5.54", default-features = false, features = ["std", "derive"] }
+clap = { version = "4.5.54", default-features = false, features = ["std", "derive", "help", "usage", "error-context"] }
 directories = "6.0.0"
 thiserror = "2.0.18"
 

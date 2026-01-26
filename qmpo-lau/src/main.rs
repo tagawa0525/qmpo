@@ -19,12 +19,17 @@ pub use error::{LauError, Result};
 #[command(version)]
 struct Args {
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
+
+    /// Path to qmpo executable (auto-detected if not specified)
+    /// Used when running without subcommand (defaults to register)
+    #[arg(long, global = true)]
+    path: Option<PathBuf>,
 }
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Register qmpo as the directory:// URI handler
+    /// Register qmpo as the directory:// URI handler (default)
     Register {
         /// Path to qmpo executable (auto-detected if not specified)
         #[arg(long)]
@@ -40,9 +45,11 @@ fn main() {
     let args = Args::parse();
 
     let result = match args.command {
-        Command::Register { path } => register(path),
-        Command::Unregister => unregister(),
-        Command::Status => status(),
+        Some(Command::Register { path }) => register(path),
+        Some(Command::Unregister) => unregister(),
+        Some(Command::Status) => status(),
+        // Default to register when no subcommand is provided (e.g., double-click)
+        None => register(args.path),
     };
 
     if let Err(e) = result {
