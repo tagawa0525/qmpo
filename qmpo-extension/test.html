@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>qmpo Extension Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 { color: #333; }
+    h2 { color: #666; margin-top: 30px; }
+    .test-links {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .test-links a {
+      display: block;
+      padding: 10px;
+      margin: 5px 0;
+      background: white;
+      border-radius: 4px;
+      color: #4285f4;
+      text-decoration: none;
+    }
+    .test-links a:hover {
+      background: #e8f0fe;
+    }
+    .note {
+      background: #fff3cd;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .success {
+      background: #d4edda;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    code {
+      background: #eee;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <h1>qmpo Extension Test Page</h1>
+
+  <div class="note">
+    <strong>Setup Required:</strong>
+    <ol>
+      <li>Load the extension at <code>chrome://extensions/</code> (Developer mode)</li>
+      <li>Ensure qmpo is installed and registered (<code>qmpo-lau status</code>)</li>
+    </ol>
+  </div>
+
+  <h2>Test Links (file://)</h2>
+  <p>Click these <code>file://</code> links. The extension converts them to <code>directory://</code>.</p>
+
+  <div class="test-links">
+    <a href="file:///home/tagawa/.bashrc">file:///home/tagawa/.bashrc (File)</a>
+    <a href="file:///home/tagawa">file:///home/tagawa (Directory)</a>
+    <a href="file:///home/tagawa/github/qmpo">file:///home/tagawa/github/qmpo (Project Dir)</a>
+    <a href="file:///etc/hosts">file:///etc/hosts (System File)</a>
+  </div>
+
+  <h2>Test Links (directory://)</h2>
+  <p>These <code>directory://</code> links should work directly with qmpo (no extension needed).</p>
+
+  <div class="test-links">
+    <a href="directory:///home/tagawa/.bashrc">directory:///home/tagawa/.bashrc (File)</a>
+    <a href="directory:///home/tagawa">directory:///home/tagawa (Directory)</a>
+    <a href="directory:///home/tagawa/github/qmpo">directory:///home/tagawa/github/qmpo (Project Dir)</a>
+    <a href="directory:///etc/hosts">directory:///etc/hosts (System File)</a>
+  </div>
+
+  <h2>Expected Behavior</h2>
+  <div class="success">
+    <ul>
+      <li>Links should show a folder icon (📂) if "Show folder icon" is enabled</li>
+      <li>Clicking a file link should open the parent folder with the file selected</li>
+      <li>Clicking a directory link should open that directory</li>
+    </ul>
+  </div>
+
+  <h2>Dynamic Link Test</h2>
+  <p>Click the button to add a dynamic link:</p>
+  <button onclick="addLink()">Add Dynamic Link</button>
+  <div id="dynamic-container" class="test-links"></div>
+
+  <script>
+    function addLink() {
+      const container = document.getElementById('dynamic-container');
+      const link = document.createElement('a');
+      link.href = 'file:///home/tagawa/.profile';
+      link.textContent = 'file:///home/tagawa/.profile (Dynamically Added)';
+      container.appendChild(link);
+    }
+  </script>
+</body>
+</html>
