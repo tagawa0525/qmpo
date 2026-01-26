@@ -3,6 +3,8 @@
 **Open Directory With Browser** - Convert `file://` links to `directory://`
 scheme, enabling local file/folder access via the qmpo handler.
 
+Solves the problem where clicking `file://` links in browsers doesn't work.
+
 qmpo is a cross-platform `directory://` URI scheme handler that opens
 directories in your file manager. This extension bridges `file://` links to
 qmpo, making it a superior alternative to existing solutions like Local
@@ -102,7 +104,7 @@ User clicks file://path/to/file
         ↓
 Extension intercepts click
         ↓
-Converts to directory://path/to/file
+Converts to directory://path/to/file 🔄
         ↓
 Browser triggers URI handler
         ↓
@@ -118,6 +120,7 @@ qmpo opens file manager with file selected
 | Stability | Breaks on Chrome updates | OS-level handler, stable |
 | File selection | Limited | Full support |
 | Dependencies | Helper app required | Single binary |
+| Security | Can execute files | Opens directories only |
 
 ## Development
 
