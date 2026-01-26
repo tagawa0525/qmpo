@@ -2,6 +2,8 @@
 //!
 //! A directory:// URI scheme handler that opens directories in your file manager.
 
+#![windows_subsystem = "windows"]
+
 use std::path::Path;
 use std::process::Command;
 
