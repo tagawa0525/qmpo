@@ -3,7 +3,7 @@ name = "qmpo-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Core library for qmpo directory URI handler"
+description = "Core library for qmpo - Open Directory With Browser"
 
 [dependencies]
 url = { version = "2.5.8", default-features = false }

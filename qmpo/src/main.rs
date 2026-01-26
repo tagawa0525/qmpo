@@ -1,9 +1,13 @@
+//! qmpo - Open Directory With Browser
+//!
+//! A directory:// URI scheme handler that opens directories in your file manager.
+
 use clap::Parser;
 use qmpo_core::DirectoryUri;
 
 #[derive(Parser, Debug)]
 #[command(name = "qmpo")]
-#[command(about = "Directory URI handler - opens directories in file manager")]
+#[command(about = "Open Directory With Browser - directory:// URI handler")]
 #[command(version)]
 struct Args {
     /// The directory URI to open (e.g., directory:///home/user)

@@ -1,3 +1,7 @@
+//! qmpo-lau - Registration tool for qmpo (Open Directory With Browser)
+//!
+//! Registers qmpo as the directory:// URI scheme handler on your system.
+
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
@@ -8,7 +12,7 @@ mod windows;
 
 #[derive(Parser, Debug)]
 #[command(name = "qmpo-lau")]
-#[command(about = "Registration tool for qmpo directory URI handler")]
+#[command(about = "Registration tool for qmpo - Open Directory With Browser")]
 #[command(version)]
 struct Args {
     #[command(subcommand)]
