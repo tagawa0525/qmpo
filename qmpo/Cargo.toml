@@ -1,0 +1,11 @@
+[package]
+name = "qmpo"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Directory URI handler - opens directories in file manager"
+
+[dependencies]
+qmpo-core = { path = "../qmpo-core" }
+clap = { version = "4.5", features = ["derive"] }
+showfile = "0.1"
