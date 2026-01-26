@@ -6,19 +6,21 @@ use std::process::Command;
 
 use directories::BaseDirs;
 
-use crate::{BoxError, find_qmpo_executable};
+use crate::{LauError, Result, find_qmpo_executable};
 
 const DESKTOP_FILE_NAME: &str = "qmpo.desktop";
 const MIME_TYPE: &str = "x-scheme-handler/directory";
 
-pub fn register(path: Option<PathBuf>) -> Result<(), BoxError> {
-    let base_dirs = BaseDirs::new().ok_or("Could not determine user directories")?;
+pub fn register(path: Option<PathBuf>) -> Result<()> {
+    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
     let home_dir = base_dirs.home_dir();
 
     let qmpo_path = path.map_or_else(find_qmpo_executable, Ok)?;
 
     if !qmpo_path.exists() {
-        return Err(format!("qmpo executable not found at: {}", qmpo_path.display()).into());
+        return Err(LauError::ExecutableNotFound(
+            qmpo_path.display().to_string(),
+        ));
     }
 
     // Install qmpo to ~/.local/bin/
@@ -67,12 +69,14 @@ MimeType={MIME_TYPE};
         println!("Registered qmpo as handler for directory:// URIs");
         Ok(())
     } else {
-        Err("Failed to set default MIME handler".into())
+        Err(LauError::XdgMime(
+            "Failed to set default MIME handler".into(),
+        ))
     }
 }
 
-pub fn unregister() -> Result<(), BoxError> {
-    let base_dirs = BaseDirs::new().ok_or("Could not determine user directories")?;
+pub fn unregister() -> Result<()> {
+    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
     let home_dir = base_dirs.home_dir();
 
     // Remove desktop file
@@ -102,8 +106,8 @@ pub fn unregister() -> Result<(), BoxError> {
     Ok(())
 }
 
-pub fn status() -> Result<(), BoxError> {
-    let base_dirs = BaseDirs::new().ok_or("Could not determine user directories")?;
+pub fn status() -> Result<()> {
+    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
     let home_dir = base_dirs.home_dir();
 
     // Check installed binary
@@ -142,7 +146,7 @@ pub fn status() -> Result<(), BoxError> {
     Ok(())
 }
 
-fn set_executable_permissions(path: &std::path::Path) -> Result<(), BoxError> {
+fn set_executable_permissions(path: &std::path::Path) -> Result<()> {
     use std::os::unix::fs::PermissionsExt;
     let mut perms = fs::metadata(path)?.permissions();
     perms.set_mode(0o755);

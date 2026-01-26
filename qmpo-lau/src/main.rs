@@ -6,9 +6,12 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
+mod error;
 mod linux;
 mod macos;
 mod windows;
+
+pub use error::{LauError, Result};
 
 #[derive(Parser, Debug)]
 #[command(name = "qmpo-lau")]
@@ -33,8 +36,6 @@ enum Command {
     Status,
 }
 
-type BoxError = Box<dyn std::error::Error>;
-
 fn main() {
     let args = Args::parse();
 
@@ -56,9 +57,11 @@ const QMPO_EXECUTABLE_NAME: &str = "qmpo.exe";
 const QMPO_EXECUTABLE_NAME: &str = "qmpo";
 
 /// Find qmpo executable in common locations.
-fn find_qmpo_executable() -> Result<PathBuf, BoxError> {
-    let current_exe_dir = std::env::current_exe()?.parent().map(|p| p.to_path_buf());
-    let current_dir = std::env::current_dir()?;
+pub fn find_qmpo_executable() -> Result<PathBuf> {
+    let current_exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()));
+    let current_dir = std::env::current_dir().map_err(LauError::Io)?;
 
     let mut candidates = Vec::new();
 
@@ -84,65 +87,101 @@ fn find_qmpo_executable() -> Result<PathBuf, BoxError> {
         }
     }
 
-    Err(format!("Could not find {QMPO_EXECUTABLE_NAME}. Please specify --path").into())
+    Err(LauError::ExecutableNotLocated)
 }
 
 #[cfg(target_os = "windows")]
-fn register(path: Option<PathBuf>) -> Result<(), BoxError> {
+fn register(path: Option<PathBuf>) -> Result<()> {
     windows::register(path)
 }
 
 #[cfg(target_os = "macos")]
-fn register(path: Option<PathBuf>) -> Result<(), BoxError> {
+fn register(path: Option<PathBuf>) -> Result<()> {
     macos::register(path)
 }
 
 #[cfg(target_os = "linux")]
-fn register(path: Option<PathBuf>) -> Result<(), BoxError> {
+fn register(path: Option<PathBuf>) -> Result<()> {
     linux::register(path)
 }
 
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-fn register(_path: Option<PathBuf>) -> Result<(), BoxError> {
-    Err("Unsupported operating system".into())
+fn register(_path: Option<PathBuf>) -> Result<()> {
+    Err(LauError::CommandFailed(
+        "Unsupported operating system".into(),
+    ))
 }
 
 #[cfg(target_os = "windows")]
-fn unregister() -> Result<(), BoxError> {
+fn unregister() -> Result<()> {
     windows::unregister()
 }
 
 #[cfg(target_os = "macos")]
-fn unregister() -> Result<(), BoxError> {
+fn unregister() -> Result<()> {
     macos::unregister()
 }
 
 #[cfg(target_os = "linux")]
-fn unregister() -> Result<(), BoxError> {
+fn unregister() -> Result<()> {
     linux::unregister()
 }
 
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-fn unregister() -> Result<(), BoxError> {
-    Err("Unsupported operating system".into())
+fn unregister() -> Result<()> {
+    Err(LauError::CommandFailed(
+        "Unsupported operating system".into(),
+    ))
 }
 
 #[cfg(target_os = "windows")]
-fn status() -> Result<(), BoxError> {
+fn status() -> Result<()> {
     windows::status()
 }
 
 #[cfg(target_os = "macos")]
-fn status() -> Result<(), BoxError> {
+fn status() -> Result<()> {
     macos::status()
 }
 
 #[cfg(target_os = "linux")]
-fn status() -> Result<(), BoxError> {
+fn status() -> Result<()> {
     linux::status()
 }
 
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-fn status() -> Result<(), BoxError> {
-    Err("Unsupported operating system".into())
+fn status() -> Result<()> {
+    Err(LauError::CommandFailed(
+        "Unsupported operating system".into(),
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_find_qmpo_executable_not_found() {
+        // When run in a directory without qmpo, should return error
+        let temp_dir = std::env::temp_dir().join("qmpo_test_empty");
+        let _ = fs::create_dir_all(&temp_dir);
+        let original_dir = std::env::current_dir().unwrap();
+
+        std::env::set_current_dir(&temp_dir).unwrap();
+        let result = find_qmpo_executable();
+        std::env::set_current_dir(original_dir).unwrap();
+
+        assert!(result.is_err());
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_qmpo_executable_name() {
+        #[cfg(target_os = "windows")]
+        assert_eq!(QMPO_EXECUTABLE_NAME, "qmpo.exe");
+
+        #[cfg(not(target_os = "windows"))]
+        assert_eq!(QMPO_EXECUTABLE_NAME, "qmpo");
+    }
 }

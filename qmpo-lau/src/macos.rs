@@ -7,20 +7,22 @@ use std::process::Command;
 use directories::BaseDirs;
 use plist::Value;
 
-use crate::{BoxError, find_qmpo_executable};
+use crate::{LauError, Result, find_qmpo_executable};
 
 const APP_NAME: &str = "qmpo.app";
 const BUNDLE_ID: &str = "com.github.qmpo";
 const LSREGISTER_PATH: &str = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
 
-pub fn register(path: Option<PathBuf>) -> Result<(), BoxError> {
-    let base_dirs = BaseDirs::new().ok_or("Could not determine user directories")?;
+pub fn register(path: Option<PathBuf>) -> Result<()> {
+    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
     let home_dir = base_dirs.home_dir();
 
     let qmpo_path = path.map_or_else(find_qmpo_executable, Ok)?;
 
     if !qmpo_path.exists() {
-        return Err(format!("qmpo executable not found at: {}", qmpo_path.display()).into());
+        return Err(LauError::ExecutableNotFound(
+            qmpo_path.display().to_string(),
+        ));
     }
 
     // Create app bundle at ~/Applications/qmpo.app
@@ -49,7 +51,9 @@ pub fn register(path: Option<PathBuf>) -> Result<(), BoxError> {
     println!("Created Info.plist: {}", info_plist_path.display());
 
     // Register with Launch Services
-    let app_bundle_str = app_bundle.to_str().ok_or("Invalid app bundle path")?;
+    let app_bundle_str = app_bundle
+        .to_str()
+        .ok_or_else(|| LauError::InvalidPath("app bundle path".into()))?;
 
     let status = Command::new(LSREGISTER_PATH)
         .args(["-register", app_bundle_str])
@@ -59,12 +63,14 @@ pub fn register(path: Option<PathBuf>) -> Result<(), BoxError> {
         println!("Registered qmpo as handler for directory:// URIs");
         Ok(())
     } else {
-        Err("Failed to register with Launch Services".into())
+        Err(LauError::LaunchServices(
+            "Failed to register with Launch Services".into(),
+        ))
     }
 }
 
-pub fn unregister() -> Result<(), BoxError> {
-    let base_dirs = BaseDirs::new().ok_or("Could not determine user directories")?;
+pub fn unregister() -> Result<()> {
+    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
     let app_bundle = base_dirs.home_dir().join("Applications").join(APP_NAME);
 
     if app_bundle.exists() {
@@ -83,8 +89,8 @@ pub fn unregister() -> Result<(), BoxError> {
     Ok(())
 }
 
-pub fn status() -> Result<(), BoxError> {
-    let base_dirs = BaseDirs::new().ok_or("Could not determine user directories")?;
+pub fn status() -> Result<()> {
+    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
 
     let app_bundle = base_dirs.home_dir().join("Applications").join(APP_NAME);
     let executable = app_bundle.join("Contents/MacOS/qmpo");
@@ -109,6 +115,7 @@ pub fn status() -> Result<(), BoxError> {
 }
 
 fn create_info_plist() -> Value {
+    let version = env!("CARGO_PKG_VERSION");
     let mut dict = plist::Dictionary::new();
 
     dict.insert(
@@ -133,11 +140,11 @@ fn create_info_plist() -> Value {
     );
     dict.insert(
         "CFBundleVersion".to_string(),
-        Value::String("1.0".to_string()),
+        Value::String(version.to_string()),
     );
     dict.insert(
         "CFBundleShortVersionString".to_string(),
-        Value::String("1.0".to_string()),
+        Value::String(version.to_string()),
     );
     dict.insert("LSBackgroundOnly".to_string(), Value::Boolean(true));
 
@@ -160,7 +167,7 @@ fn create_info_plist() -> Value {
     Value::Dictionary(dict)
 }
 
-fn set_executable_permissions(path: &std::path::Path) -> Result<(), BoxError> {
+fn set_executable_permissions(path: &std::path::Path) -> Result<()> {
     use std::os::unix::fs::PermissionsExt;
     let mut perms = fs::metadata(path)?.permissions();
     perms.set_mode(0o755);
