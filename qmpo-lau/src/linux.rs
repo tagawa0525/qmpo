@@ -44,7 +44,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 Type=Application
 Name=qmpo
 Comment=Directory URI Handler
-Exec="{}" %u
+Exec={} %u
 Terminal=false
 NoDisplay=true
 MimeType={MIME_TYPE};
