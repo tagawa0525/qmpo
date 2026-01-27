@@ -57,6 +57,57 @@ cargo build --release
 .\target\release\qmpo-lau.exe register
 ```
 
+### NixOS / Home Manager
+
+Flake入力として追加:
+
+```nix
+# flake.nix
+{
+  inputs = {
+    qmpo = {
+      url = "github:tagawa0525/qmpo";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+}
+```
+
+#### 方法1: Home Managerモジュールを使用（推奨）
+
+```nix
+# home.nix または home-manager設定
+{ inputs, ... }:
+{
+  imports = [ inputs.qmpo.homeManagerModules.default ];
+
+  programs.qmpo.enable = true;
+}
+```
+
+#### 方法2: 手動設定
+
+```nix
+# flake.nix のオーバーレイに追加
+nixpkgs.overlays = [ qmpo.overlays.default ];
+
+# home-manager設定
+{ pkgs, ... }:
+{
+  xdg.mimeApps.defaultApplications = {
+    "x-scheme-handler/directory" = "qmpo.desktop";
+  };
+
+  xdg.desktopEntries.qmpo = {
+    name = "qmpo";
+    exec = "${pkgs.qmpo}/bin/qmpo %u";
+    terminal = false;
+    noDisplay = true;
+    mimeType = [ "x-scheme-handler/directory" ];
+  };
+}
+```
+
 ## 使い方
 
 ### 直接実行
@@ -102,6 +153,7 @@ qmpo/
 | Windows | `%LOCALAPPDATA%\qmpo\` | レジストリ (HKCU) |
 | macOS | `~/Applications/qmpo.app/` | Launch Services |
 | Linux | `~/.local/bin/` | XDG MIME + Desktopファイル |
+| NixOS | `/nix/store/...` | Flake + Home Manager |
 
 ## ライセンス
 

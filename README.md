@@ -57,6 +57,57 @@ cargo build --release
 .\target\release\qmpo-lau.exe register
 ```
 
+### NixOS / Home Manager
+
+Add as a flake input:
+
+```nix
+# flake.nix
+{
+  inputs = {
+    qmpo = {
+      url = "github:tagawa0525/qmpo";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+}
+```
+
+#### Option 1: Use the Home Manager module (recommended)
+
+```nix
+# home.nix or home-manager configuration
+{ inputs, ... }:
+{
+  imports = [ inputs.qmpo.homeManagerModules.default ];
+
+  programs.qmpo.enable = true;
+}
+```
+
+#### Option 2: Manual configuration
+
+```nix
+# Add to overlays in flake.nix
+nixpkgs.overlays = [ qmpo.overlays.default ];
+
+# home-manager configuration
+{ pkgs, ... }:
+{
+  xdg.mimeApps.defaultApplications = {
+    "x-scheme-handler/directory" = "qmpo.desktop";
+  };
+
+  xdg.desktopEntries.qmpo = {
+    name = "qmpo";
+    exec = "${pkgs.qmpo}/bin/qmpo %u";
+    terminal = false;
+    noDisplay = true;
+    mimeType = [ "x-scheme-handler/directory" ];
+  };
+}
+```
+
 ## Usage
 
 ### Direct Execution
@@ -102,6 +153,7 @@ qmpo/
 | Windows | `%LOCALAPPDATA%\qmpo\` | Registry (HKCU) |
 | macOS | `~/Applications/qmpo.app/` | Launch Services |
 | Linux | `~/.local/bin/` | XDG MIME + Desktop file |
+| NixOS | `/nix/store/...` | Flake + Home Manager |
 
 ## License
 
