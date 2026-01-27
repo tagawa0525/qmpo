@@ -60,7 +60,19 @@
     if (!url || !url.startsWith('file://')) {
       return null;
     }
-    return url.replace(/^file:\/\//, 'directory://');
+
+    let directoryUrl = url.replace(/^file:\/\//, 'directory://');
+
+    // Fix Windows drive letter without colon
+    // Some browsers convert "C:/" to "C/" (removing the colon)
+    // Pattern: directory://X/ where X is a single letter -> directory:///X:/
+    // Also handles: directory:///X/ -> directory:///X:/
+    directoryUrl = directoryUrl.replace(
+      /^directory:\/\/\/?([A-Za-z])\//,
+      'directory:///$1:/'
+    );
+
+    return directoryUrl;
   }
 
   // Check if element is a file:// link
