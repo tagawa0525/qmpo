@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="folderGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#5C9CE6"/>
+      <stop offset="100%" style="stop-color:#3D7DD4"/>
+    </linearGradient>
+  </defs>
+  <!-- Folder back -->
+  <path d="M12 32 L52 32 L60 24 L116 24 L116 104 L12 104 Z" fill="#4A90D9"/>
+  <!-- Folder front -->
+  <path d="M8 40 L120 40 L120 108 L8 108 Z" fill="url(#folderGrad)" rx="4"/>
+  <!-- Arrow -->
+  <path d="M64 56 L64 88 M48 72 L64 88 L80 72" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

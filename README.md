@@ -14,6 +14,15 @@ qmpo opens the corresponding directory in your system's file manager.
 This tool bridges the gap between web browsers and local file systems, making
 it easy to open directory with browser navigation.
 
+## Use Cases
+
+- Open local files directly from links on web pages
+- Access shared folders from internal documentation sites
+- Navigate to files from search result pages
+
+**Why qmpo?** Cross-platform, single binary, secure (opens directories only).
+With the [Chrome extension](qmpo-extension/), existing `file://` links work. 🔄
+
 ## URI Format
 
 | OS | File Path | URI Format |
@@ -97,3 +106,12 @@ qmpo/
 ## License
 
 MIT
+
+---
+
+## Why "qmpo"?
+
+**O**pen **D**irectory **W**ith **B**rowser → odwb 🔄 qmpo
+
+Ideally, browsers handle `directory://` links natively. Until then, qmpo
+fills the gap.
