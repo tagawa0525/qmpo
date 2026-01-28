@@ -1,2 +1,10 @@
 /target
 /result
+
+# AUR build artifacts
+/aur/src/
+/aur/pkg/
+/aur/*.tar.zst
+/aur/*.tar.xz
+/aur/*.tar.gz
+/aur/qmpo/

@@ -1,0 +1,13 @@
+post_install() {
+    echo ">>> qmpo has been installed as the directory:// URI handler."
+    echo ">>> Test it with: xdg-open 'directory:///home'"
+}
+
+post_upgrade() {
+    post_install
+}
+
+post_remove() {
+    echo ">>> qmpo has been removed."
+    echo ">>> The directory:// URI handler has been unregistered."
+}

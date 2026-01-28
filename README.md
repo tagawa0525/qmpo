@@ -1,159 +1,56 @@
 # qmpo
 
-**Open Directory With Browser** - A cross-platform `directory://` URI scheme
-handler that opens directories in your file manager.
+A `directory://` URI handler that opens directories in your file manager.
 
 [日本語](README-ja.md)
 
-## Overview
+## Why?
 
-qmpo enables you to open directory with browser using a custom URI scheme. When
-you click a `directory://` link or enter it in your browser's address bar,
-qmpo opens the corresponding directory in your system's file manager.
+Browsers block `file://` links for security reasons. But sometimes you need to
+open local directories from web pages—internal wikis, documentation sites,
+or search results pointing to shared folders.
 
-This tool bridges the gap between web browsers and local file systems, making
-it easy to open directory with browser navigation.
-
-## Use Cases
-
-- Open local files directly from links on web pages
-- Access shared folders from internal documentation sites
-- Navigate to files from search result pages
-
-**Why qmpo?** Cross-platform, single binary, secure (opens directories only).
-With the [Chrome extension](qmpo-extension/), existing `file://` links work. 🔄
+qmpo solves this by providing a `directory://` URI scheme that safely opens
+directories (not files) in your file manager. With the
+[Chrome extension](qmpo-extension/), existing `file://` links work seamlessly.
 
 ## URI Format
 
-| OS | File Path | URI Format |
+| OS | Path | URI |
 | --- | --- | --- |
-| Windows (local) | `C:\Users\tagawa` | `directory://C:/Users/tagawa` |
-| Windows (UNC) | `\\server\share\folder` | `directory://server/share/folder` |
+| Windows | `C:\Users\tagawa` | `directory://C:/Users/tagawa` |
+| Windows (UNC) | `\\server\share` | `directory://server/share` |
 | macOS/Linux | `/home/tagawa` | `directory:///home/tagawa` |
-
-**Note:** If a file path is specified, qmpo opens the parent directory
-containing that file.
 
 ## Installation
 
-### Build from Source
+### Arch Linux
+
+```bash
+git clone https://github.com/tagawa0525/qmpo.git
+cd qmpo/aur
+makepkg -si
+```
+
+### NixOS / Home Manager
+
+```nix
+# flake.nix
+inputs.qmpo.url = "github:tagawa0525/qmpo";
+
+# home.nix
+imports = [ inputs.qmpo.homeManagerModules.default ];
+programs.qmpo.enable = true;
+```
+
+### Other (Build from Source)
 
 ```bash
 git clone https://github.com/tagawa0525/qmpo.git
 cd qmpo
 cargo build --release
-```
-
-### Register URI Handler
-
-```bash
-# Linux
 ./target/release/qmpo-lau register
-
-# macOS
-./target/release/qmpo-lau register
-
-# Windows
-.\target\release\qmpo-lau.exe register
 ```
-
-### NixOS / Home Manager
-
-Add as a flake input:
-
-```nix
-# flake.nix
-{
-  inputs = {
-    qmpo = {
-      url = "github:tagawa0525/qmpo";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
-}
-```
-
-#### Option 1: Use the Home Manager module (recommended)
-
-```nix
-# home.nix or home-manager configuration
-{ inputs, ... }:
-{
-  imports = [ inputs.qmpo.homeManagerModules.default ];
-
-  programs.qmpo.enable = true;
-}
-```
-
-#### Option 2: Manual configuration
-
-```nix
-# Add to overlays in flake.nix
-nixpkgs.overlays = [ qmpo.overlays.default ];
-
-# home-manager configuration
-{ pkgs, ... }:
-{
-  xdg.mimeApps.defaultApplications = {
-    "x-scheme-handler/directory" = "qmpo.desktop";
-  };
-
-  xdg.desktopEntries.qmpo = {
-    name = "qmpo";
-    exec = "${pkgs.qmpo}/bin/qmpo %u";
-    terminal = false;
-    noDisplay = true;
-    mimeType = [ "x-scheme-handler/directory" ];
-  };
-}
-```
-
-## Usage
-
-### Direct Execution
-
-```bash
-qmpo "directory:///home/user/Documents"
-```
-
-### Open Directory With Browser
-
-Enter a URI in your browser's address bar to open directory with browser:
-
-```text
-directory:///home/user/Documents
-```
-
-### Management Commands
-
-```bash
-# Register as URI handler
-qmpo-lau register
-
-# Check registration status
-qmpo-lau status
-
-# Unregister
-qmpo-lau unregister
-```
-
-## Project Structure
-
-```text
-qmpo/
-├── qmpo-core/    # Core library (URI parsing)
-├── qmpo/         # Main application (URI handler)
-└── qmpo-lau/     # Registration utility
-```
-
-## Platform Support
-
-| Platform | Handler Location | Registration Method |
-| --- | --- | --- |
-| Windows | `%LOCALAPPDATA%\qmpo\` | Registry (HKCU) |
-| macOS | `~/Applications/qmpo.app/` | Launch Services |
-| Linux | `~/.local/bin/` | XDG MIME + Desktop file |
-| NixOS | `/nix/store/...` | Flake + Home Manager |
 
 ## License
 
@@ -161,9 +58,4 @@ MIT
 
 ---
 
-## Why "qmpo"?
-
 **O**pen **D**irectory **W**ith **B**rowser → odwb 🔄 qmpo
-
-Ideally, browsers handle `directory://` links natively. Until then, qmpo
-fills the gap.

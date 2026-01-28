@@ -1,0 +1,72 @@
+# Maintainer: tagawa <tagawa0525@users.noreply.github.com>
+pkgname=qmpo-git
+pkgver=0.1.0.r17.gbae44e7
+pkgrel=1
+pkgdesc="directory:// URI handler for opening directories in your file manager"
+arch=('x86_64' 'aarch64')
+url="https://github.com/tagawa0525/qmpo"
+license=('MIT')
+depends=('xdg-utils')
+makedepends=('git' 'cargo')
+provides=('qmpo')
+conflicts=('qmpo')
+install=qmpo-git.install
+source=("git+https://github.com/tagawa0525/qmpo.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$srcdir/qmpo"
+    local ver
+    ver=$(git describe --long --tags 2>/dev/null | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g')
+    if [[ -z "$ver" ]]; then
+        printf "0.1.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+    else
+        echo "$ver"
+    fi
+}
+
+prepare() {
+    cd "$srcdir/qmpo"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "$srcdir/qmpo"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo build --frozen --release --all
+}
+
+check() {
+    cd "$srcdir/qmpo"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo test --frozen --all
+}
+
+package() {
+    cd "$srcdir/qmpo"
+
+    # Install binaries to /usr/lib/qmpo (not in PATH)
+    install -Dm755 "target/release/qmpo" "$pkgdir/usr/lib/qmpo/qmpo"
+    install -Dm755 "target/release/qmpo-lau" "$pkgdir/usr/lib/qmpo/qmpo-lau"
+
+    # Install license
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+    # Install documentation
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+    install -Dm644 README-ja.md "$pkgdir/usr/share/doc/$pkgname/README-ja.md"
+
+    # Install desktop file for URI handler
+    install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/qmpo.desktop" <<EOF
+[Desktop Entry]
+Name=qmpo
+Comment=Open directories from directory:// URIs
+Exec=/usr/lib/qmpo/qmpo %u
+Type=Application
+NoDisplay=true
+MimeType=x-scheme-handler/directory;
+Categories=Utility;
+EOF
+}
