@@ -52,6 +52,18 @@ cargo build --release
 ./target/release/qmpo-lau register
 ```
 
+### Chrome Extension
+
+The Chrome extension converts `file://` links to `directory://` automatically.
+
+1. Open `chrome://extensions/` in Chrome
+2. Enable "Developer mode" (toggle in top right)
+3. Click "Load unpacked"
+4. Select the `qmpo-extension` folder
+
+The extension adds a folder icon to converted links and provides settings
+via the extension popup.
+
 ## License
 
 MIT
