@@ -64,6 +64,14 @@ The Chrome extension converts `file://` links to `directory://` automatically.
 The extension adds a folder icon to converted links and provides settings
 via the extension popup.
 
+## Test Pages
+
+Test pages are available for verifying qmpo installation:
+
+- [Linux](docs/test-linux.html)
+- [macOS](docs/test-macos.html)
+- [Windows](docs/test-windows.html)
+
 ## License
 
 MIT

@@ -63,6 +63,14 @@ Chrome拡張機能は `file://` リンクを自動的に `directory://` に変�
 
 拡張機能は変換されたリンクにフォルダアイコンを追加し、拡張機能のポップアップから設定ができます。
 
+## テストページ
+
+qmpoのインストール確認用テストページ:
+
+- [Linux](docs/test-linux.html)
+- [macOS](docs/test-macos.html)
+- [Windows](docs/test-windows.html)
+
 ## ライセンス
 
 MIT
