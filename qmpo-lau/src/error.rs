@@ -5,6 +5,7 @@ use thiserror::Error;
 
 /// Errors that can occur during qmpo-lau operations.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum LauError {
     /// Failed to determine user directories.
     #[error("could not determine user directories")]
@@ -41,6 +42,11 @@ pub enum LauError {
     /// XDG MIME operation failed (Linux).
     #[error("XDG MIME error: {0}")]
     XdgMime(String),
+
+    /// Plist operation failed (macOS).
+    #[cfg(target_os = "macos")]
+    #[error("plist error: {0}")]
+    Plist(#[from] plist::Error),
 }
 
 pub type Result<T> = std::result::Result<T, LauError>;
