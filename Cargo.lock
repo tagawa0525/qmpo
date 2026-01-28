@@ -349,6 +349,7 @@ name = "qmpo"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "directories",
  "percent-encoding",
  "thiserror",
  "url",

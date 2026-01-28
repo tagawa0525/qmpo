@@ -5,6 +5,7 @@
 #![windows_subsystem = "windows"]
 
 mod error;
+mod log;
 mod uri;
 
 use std::path::Path;
@@ -25,15 +26,22 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
+    log::info(&format!("Received URI: {}", args.uri));
+
     if let Err(e) = run(&args.uri) {
+        log::error(&format!("Failed: {}", e));
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }
+
+    log::info("Completed successfully");
 }
 
 fn run(uri_str: &str) -> Result<(), Box<dyn std::error::Error>> {
     let uri = DirectoryUri::parse(uri_str)?;
     let path = uri.path();
+
+    log::info(&format!("Parsed path: {}", path.display()));
 
     if !path.exists() {
         return Err(format!("Path does not exist: {}", path.display()).into());
@@ -43,6 +51,8 @@ fn run(uri_str: &str) -> Result<(), Box<dyn std::error::Error>> {
     let canonical_path = path
         .canonicalize()
         .map_err(|e| format!("Failed to resolve path {}: {}", path.display(), e))?;
+
+    log::info(&format!("Opening: {}", canonical_path.display()));
 
     // Open in file manager (with file selected if path is a file)
     open_in_file_manager(&canonical_path)?;
