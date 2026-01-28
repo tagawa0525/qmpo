@@ -29,10 +29,8 @@ pub fn log(level: &str, message: &str) {
     }
 
     // Rotate log if too large
-    if let Ok(metadata) = fs::metadata(&path) {
-        if metadata.len() > MAX_LOG_SIZE {
-            let _ = fs::remove_file(&path);
-        }
+    if fs::metadata(&path).is_ok_and(|m| m.len() > MAX_LOG_SIZE) {
+        let _ = fs::remove_file(&path);
     }
 
     // Append to log file
