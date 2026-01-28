@@ -16,12 +16,24 @@
   // Load settings from storage
   function loadSettings() {
     return new Promise((resolve) => {
-      if (chrome.storage && chrome.storage.sync) {
+      if (!chrome.storage || !chrome.storage.sync) {
+        console.warn('qmpo: chrome.storage.sync not available, using defaults');
+        resolve(settings);
+        return;
+      }
+
+      try {
         chrome.storage.sync.get(DEFAULT_SETTINGS, (result) => {
+          if (chrome.runtime.lastError) {
+            console.warn('qmpo: Failed to load settings:', chrome.runtime.lastError.message);
+            resolve(settings);
+            return;
+          }
           settings = { ...DEFAULT_SETTINGS, ...result };
           resolve(settings);
         });
-      } else {
+      } catch (e) {
+        console.warn('qmpo: Error loading settings:', e.message);
         resolve(settings);
       }
     });
@@ -188,17 +200,28 @@
       chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === 'sync') {
           for (const key in changes) {
-            settings[key] = changes[key].newValue;
+            if (Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS, key)) {
+              settings[key] = changes[key].newValue;
+            }
           }
         }
       });
     }
   }
 
+  // Wrap init to catch unexpected errors
+  async function safeInit() {
+    try {
+      await init();
+    } catch (e) {
+      console.error('qmpo: Initialization failed:', e.message);
+    }
+  }
+
   // Start when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', safeInit);
   } else {
-    init();
+    safeInit();
   }
 })();
