@@ -1,37 +1,26 @@
 # qmpo
 
-**Open Directory With Browser** - ブラウザから `directory://` URIスキームで
-ディレクトリをファイルマネージャーで開くクロスプラットフォームツール。
+ファイルマネージャーでディレクトリを開く `directory://` URIハンドラー。
 
 [English](README.md)
 
-## 概要
+## なぜ必要？
 
-qmpoはカスタムURIスキームを使用して、ブラウザからディレクトリを開くことができます
-（Open Directory With Browser）。`directory://` リンクをクリックするか、
-ブラウザのアドレスバーに入力すると、システムのファイルマネージャーで
-対応するディレクトリが開きます。
+ブラウザはセキュリティ上の理由で `file://` リンクをブロックします。
+しかし、社内Wiki、ドキュメントサイト、共有フォルダへの検索結果など、
+Webページからローカルディレクトリを開きたい場面があります。
 
-Webブラウザとローカルファイルシステムの橋渡しをするツールです。
-
-## ユースケース
-
-- Webページ上のリンクからローカルファイルを直接開く
-- 社内ドキュメントサイトから共有フォルダにアクセス
-- 検索結果ページからファイルの場所へ移動
-
-**特徴:** クロスプラットフォーム、シングルバイナリ、セキュア（ディレクトリのみ開く）
-[Chrome拡張機能](qmpo-extension/)を使えば、既存の `file://` リンクがそのまま動作します。🔄
+qmpoは `directory://` URIスキームを提供し、ファイルマネージャーで
+ディレクトリを安全に開きます（ファイルは開きません）。
+[Chrome拡張機能](qmpo-extension/)を使えば、既存の `file://` リンクもそのまま動作します。
 
 ## URI形式
 
-| OS | ファイルパス | URI形式 |
+| OS | パス | URI |
 | --- | --- | --- |
-| Windows (ローカル) | `C:\Users\tagawa` | `directory://C:/Users/tagawa` |
-| Windows (UNC) | `\\server\share\folder` | `directory://server/share/folder` |
+| Windows | `C:\Users\tagawa` | `directory://C:/Users/tagawa` |
+| Windows (UNC) | `\\server\share` | `directory://server/share` |
 | macOS/Linux | `/home/tagawa` | `directory:///home/tagawa` |
-
-**注意:** ファイルパスを指定した場合、そのファイルが存在する親ディレクトリが開きます。
 
 ## インストール
 
@@ -60,7 +49,7 @@ programs.qmpo.enable = true;
 git clone https://github.com/tagawa0525/qmpo.git
 cd qmpo
 cargo build --release
-./target/release/qmpo-lau register   # Linux/macOS
+./target/release/qmpo-lau register
 ```
 
 ## ライセンス
@@ -69,9 +58,4 @@ MIT
 
 ---
 
-## なぜ "qmpo"?
-
 **O**pen **D**irectory **W**ith **B**rowser → odwb 🔄 qmpo
-
-理想的にはブラウザが `directory://` リンクをネイティブに処理すべきです。
-それまでの間、qmpoがその橋渡しをします。
