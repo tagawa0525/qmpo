@@ -81,7 +81,7 @@ fn open_in_file_manager(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     if path.is_file() {
         // Try dbus-send to select file in file manager (works with Nautilus, Dolphin, etc.)
         let file_uri = format!("file://{}", path.display());
-        let result = Command::new("dbus-send")
+        let dbus_result = Command::new("dbus-send")
             .args([
                 "--session",
                 "--dest=org.freedesktop.FileManager1",
@@ -91,9 +91,11 @@ fn open_in_file_manager(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
                 &format!("array:string:{}", file_uri),
                 "string:",
             ])
-            .spawn();
+            .status();
 
-        if result.is_err() {
+        let dbus_succeeded = dbus_result.map(|s| s.success()).unwrap_or(false);
+
+        if !dbus_succeeded {
             // Fallback: open parent directory without file selection
             if let Some(parent) = path.parent() {
                 Command::new("xdg-open").arg(parent).spawn()?;
