@@ -1,8 +1,6 @@
 post_install() {
-    echo ">>> To register the directory:// URI handler, run:"
-    echo ">>>   qmpo-lau register"
-    echo ">>> Or manually update your MIME database:"
-    echo ">>>   xdg-mime default qmpo.desktop x-scheme-handler/directory"
+    echo ">>> qmpo has been installed as the directory:// URI handler."
+    echo ">>> Test it with: xdg-open 'directory:///home'"
 }
 
 post_upgrade() {
@@ -10,6 +8,6 @@ post_upgrade() {
 }
 
 post_remove() {
-    echo ">>> To unregister the directory:// URI handler, run:"
-    echo ">>>   xdg-mime default '' x-scheme-handler/directory"
+    echo ">>> qmpo has been removed."
+    echo ">>> The directory:// URI handler has been unregistered."
 }
