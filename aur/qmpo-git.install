@@ -1,0 +1,15 @@
+post_install() {
+    echo ">>> To register the directory:// URI handler, run:"
+    echo ">>>   qmpo-lau register"
+    echo ">>> Or manually update your MIME database:"
+    echo ">>>   xdg-mime default qmpo.desktop x-scheme-handler/directory"
+}
+
+post_upgrade() {
+    post_install
+}
+
+post_remove() {
+    echo ">>> To unregister the directory:// URI handler, run:"
+    echo ">>>   xdg-mime default '' x-scheme-handler/directory"
+}
