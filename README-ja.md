@@ -52,6 +52,17 @@ cargo build --release
 ./target/release/qmpo-lau register
 ```
 
+### Chrome拡張機能
+
+Chrome拡張機能は `file://` リンクを自動的に `directory://` に変換します。
+
+1. Chromeで `chrome://extensions/` を開く
+2. 右上の「デベロッパーモード」を有効にする
+3. 「パッケージ化されていない拡張機能を読み込む」をクリック
+4. `qmpo-extension` フォルダを選択
+
+拡張機能は変換されたリンクにフォルダアイコンを追加し、拡張機能のポップアップから設定ができます。
+
 ## ライセンス
 
 MIT

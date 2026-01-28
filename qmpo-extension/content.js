@@ -13,15 +13,65 @@
 
   let settings = DEFAULT_SETTINGS;
 
+  // Toast notification for errors
+  function showToast(message, isError = false) {
+    // Remove existing toast
+    const existing = document.getElementById('qmpo-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'qmpo-toast';
+    toast.textContent = message;
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      background: ${isError ? '#dc3545' : '#28a745'};
+      color: white;
+      border-radius: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      z-index: 999999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    `;
+    document.body.appendChild(toast);
+
+    // Fade in
+    requestAnimationFrame(() => {
+      toast.style.opacity = '1';
+    });
+
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
   // Load settings from storage
   function loadSettings() {
     return new Promise((resolve) => {
-      if (chrome.storage && chrome.storage.sync) {
+      if (!chrome.storage || !chrome.storage.sync) {
+        console.warn('qmpo: chrome.storage.sync not available, using defaults');
+        resolve(settings);
+        return;
+      }
+
+      try {
         chrome.storage.sync.get(DEFAULT_SETTINGS, (result) => {
+          if (chrome.runtime.lastError) {
+            console.warn('qmpo: Failed to load settings:', chrome.runtime.lastError.message);
+            resolve(settings);
+            return;
+          }
           settings = { ...DEFAULT_SETTINGS, ...result };
           resolve(settings);
         });
-      } else {
+      } catch (e) {
+        console.warn('qmpo: Error loading settings:', e.message);
         resolve(settings);
       }
     });
@@ -116,6 +166,9 @@
     chrome.runtime.sendMessage({ action: 'openDirectory', url: url }, (response) => {
       if (chrome.runtime.lastError) {
         console.error('qmpo: Failed to open directory:', chrome.runtime.lastError);
+        showToast('Failed to open directory. Is qmpo installed?', true);
+      } else if (response && response.error) {
+        showToast(response.error, true);
       }
     });
   }
@@ -188,17 +241,28 @@
       chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === 'sync') {
           for (const key in changes) {
-            settings[key] = changes[key].newValue;
+            if (Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS, key)) {
+              settings[key] = changes[key].newValue;
+            }
           }
         }
       });
     }
   }
 
+  // Wrap init to catch unexpected errors
+  async function safeInit() {
+    try {
+      await init();
+    } catch (e) {
+      console.error('qmpo: Initialization failed:', e.message);
+    }
+  }
+
   // Start when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', safeInit);
   } else {
-    init();
+    safeInit();
   }
 })();

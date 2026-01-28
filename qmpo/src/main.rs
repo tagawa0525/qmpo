@@ -4,11 +4,15 @@
 
 #![windows_subsystem = "windows"]
 
+mod error;
+mod log;
+mod uri;
+
 use std::path::Path;
 use std::process::Command;
 
 use clap::Parser;
-use qmpo_core::DirectoryUri;
+use uri::DirectoryUri;
 
 #[derive(Parser, Debug)]
 #[command(name = "qmpo")]
@@ -22,15 +26,22 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
+    log::info(&format!("Received URI: {}", args.uri));
+
     if let Err(e) = run(&args.uri) {
+        log::error(&format!("Failed: {}", e));
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }
+
+    log::info("Completed successfully");
 }
 
 fn run(uri_str: &str) -> Result<(), Box<dyn std::error::Error>> {
     let uri = DirectoryUri::parse(uri_str)?;
     let path = uri.path();
+
+    log::info(&format!("Parsed path: {}", path.display()));
 
     if !path.exists() {
         return Err(format!("Path does not exist: {}", path.display()).into());
@@ -40,6 +51,8 @@ fn run(uri_str: &str) -> Result<(), Box<dyn std::error::Error>> {
     let canonical_path = path
         .canonicalize()
         .map_err(|e| format!("Failed to resolve path {}: {}", path.display(), e))?;
+
+    log::info(&format!("Opening: {}", canonical_path.display()));
 
     // Open in file manager (with file selected if path is a file)
     open_in_file_manager(&canonical_path)?;
@@ -81,7 +94,7 @@ fn open_in_file_manager(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     if path.is_file() {
         // Try dbus-send to select file in file manager (works with Nautilus, Dolphin, etc.)
         let file_uri = format!("file://{}", path.display());
-        let result = Command::new("dbus-send")
+        let dbus_result = Command::new("dbus-send")
             .args([
                 "--session",
                 "--dest=org.freedesktop.FileManager1",
@@ -91,9 +104,11 @@ fn open_in_file_manager(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
                 &format!("array:string:{}", file_uri),
                 "string:",
             ])
-            .spawn();
+            .status();
 
-        if result.is_err() {
+        let dbus_succeeded = dbus_result.map(|s| s.success()).unwrap_or(false);
+
+        if !dbus_succeeded {
             // Fallback: open parent directory without file selection
             if let Some(parent) = path.parent() {
                 Command::new("xdg-open").arg(parent).spawn()?;

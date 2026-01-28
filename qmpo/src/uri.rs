@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use percent_encoding::percent_decode_str;
 use url::Url;
 
-use crate::error::{QmpoError, Result};
+use super::error::{QmpoError, Result};
 
 /// The URI scheme identifier.
 const SCHEME: &str = "directory";
@@ -141,25 +141,6 @@ impl DirectoryUri {
     #[inline]
     pub fn path(&self) -> &Path {
         &self.path
-    }
-
-    /// Consumes the URI and returns the filesystem path.
-    ///
-    /// This is useful when you need ownership of the path and no longer need the URI.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use qmpo_core::DirectoryUri;
-    /// use std::path::PathBuf;
-    ///
-    /// let uri = DirectoryUri::parse("directory:///home/user")?;
-    /// let path: PathBuf = uri.into_path();
-    /// # Ok::<(), qmpo_core::QmpoError>(())
-    /// ```
-    #[inline]
-    pub fn into_path(self) -> PathBuf {
-        self.path
     }
 }
 
@@ -326,13 +307,5 @@ mod tests {
     fn test_missing_scheme() {
         let result = DirectoryUri::parse("///home/tagawa");
         assert!(result.is_err());
-    }
-
-    // into_path test
-    #[test]
-    fn test_into_path() {
-        let uri = DirectoryUri::parse("directory:///home/tagawa").unwrap();
-        let path: PathBuf = uri.into_path();
-        assert_eq!(path, PathBuf::from("/home/tagawa"));
     }
 }
