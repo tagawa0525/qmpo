@@ -36,21 +36,6 @@ containing that file.
 
 ## Installation
 
-### Build from Source
-
-```bash
-git clone https://github.com/tagawa0525/qmpo.git
-cd qmpo
-cargo build --release
-```
-
-### Register URI Handler
-
-```bash
-./target/release/qmpo-lau register   # Linux/macOS
-.\target\release\qmpo-lau.exe register   # Windows
-```
-
 ### Arch Linux
 
 ```bash
@@ -61,102 +46,23 @@ makepkg -si
 
 ### NixOS / Home Manager
 
-Add as a flake input:
-
 ```nix
 # flake.nix
-{
-  inputs = {
-    qmpo = {
-      url = "github:tagawa0525/qmpo";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
-}
+inputs.qmpo.url = "github:tagawa0525/qmpo";
+
+# home.nix
+imports = [ inputs.qmpo.homeManagerModules.default ];
+programs.qmpo.enable = true;
 ```
 
-#### Option 1: Use the Home Manager module (recommended)
-
-```nix
-# home.nix or home-manager configuration
-{ inputs, ... }:
-{
-  imports = [ inputs.qmpo.homeManagerModules.default ];
-
-  programs.qmpo.enable = true;
-}
-```
-
-#### Option 2: Manual configuration
-
-```nix
-# Add to overlays in flake.nix
-nixpkgs.overlays = [ qmpo.overlays.default ];
-
-# home-manager configuration
-{ pkgs, ... }:
-{
-  xdg.mimeApps.defaultApplications = {
-    "x-scheme-handler/directory" = "qmpo.desktop";
-  };
-
-  xdg.desktopEntries.qmpo = {
-    name = "qmpo";
-    exec = "${pkgs.qmpo}/bin/qmpo %u";
-    terminal = false;
-    noDisplay = true;
-    mimeType = [ "x-scheme-handler/directory" ];
-  };
-}
-```
-
-## Usage
-
-### Direct Execution
+### Other (Build from Source)
 
 ```bash
-qmpo "directory:///home/user/Documents"
+git clone https://github.com/tagawa0525/qmpo.git
+cd qmpo
+cargo build --release
+./target/release/qmpo-lau register   # Linux/macOS
 ```
-
-### Open Directory With Browser
-
-Enter a URI in your browser's address bar to open directory with browser:
-
-```text
-directory:///home/user/Documents
-```
-
-### Management Commands
-
-```bash
-# Register as URI handler
-qmpo-lau register
-
-# Check registration status
-qmpo-lau status
-
-# Unregister
-qmpo-lau unregister
-```
-
-## Project Structure
-
-```text
-qmpo/
-├── qmpo-core/    # Core library (URI parsing)
-├── qmpo/         # Main application (URI handler)
-└── qmpo-lau/     # Registration utility
-```
-
-## Platform Support
-
-| Platform | Handler Location | Registration Method |
-| --- | --- | --- |
-| Windows | `%LOCALAPPDATA%\qmpo\` | Registry (HKCU) |
-| macOS | `~/Applications/qmpo.app/` | Launch Services |
-| Linux | `~/.local/bin/` | XDG MIME + Desktop file |
-| Arch Linux | `/usr/lib/qmpo/` | PKGBUILD + pacman hooks |
-| NixOS | `/nix/store/...` | Flake + Home Manager |
 
 ## License
 
