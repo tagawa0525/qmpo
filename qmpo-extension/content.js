@@ -77,17 +77,18 @@
     });
   }
 
+  // Check if hostname matches a domain (exact match or subdomain)
+  function matchesDomain(hostname, domain) {
+    return hostname === domain || hostname.endsWith('.' + domain);
+  }
+
   // Check if current domain is allowed
   function isDomainAllowed() {
     const hostname = window.location.hostname;
 
     // Check blocked domains first
-    if (settings.blockedDomains.length > 0) {
-      for (const domain of settings.blockedDomains) {
-        if (hostname === domain || hostname.endsWith('.' + domain)) {
-          return false;
-        }
-      }
+    if (settings.blockedDomains.some(domain => matchesDomain(hostname, domain))) {
+      return false;
     }
 
     // If allowedDomains is empty, allow all (except blocked)
@@ -96,13 +97,7 @@
     }
 
     // Check allowed domains
-    for (const domain of settings.allowedDomains) {
-      if (hostname === domain || hostname.endsWith('.' + domain)) {
-        return true;
-      }
-    }
-
-    return false;
+    return settings.allowedDomains.some(domain => matchesDomain(hostname, domain));
   }
 
   // Convert file:// URL to directory:// URL
@@ -163,7 +158,7 @@
 
   // Open directory:// URL via background script
   function openDirectoryUrl(url) {
-    chrome.runtime.sendMessage({ action: 'openDirectory', url: url }, (response) => {
+    chrome.runtime.sendMessage({ action: 'openDirectory', url }, () => {
       if (chrome.runtime.lastError) {
         console.error('qmpo: Failed to open directory:', chrome.runtime.lastError);
         showToast('Failed to open directory. Is qmpo installed?', true);
@@ -201,15 +196,12 @@
           if (node.nodeType !== Node.ELEMENT_NODE) continue;
 
           // Check if the added node is a file:// link
-          if (node.tagName === 'A' && isFileLink(node)) {
+          if (isFileLink(node)) {
             processLink(node);
           }
 
           // Check descendants
-          const links = node.querySelectorAll?.('a[href^="file://"]');
-          if (links) {
-            links.forEach(processLink);
-          }
+          node.querySelectorAll?.('a[href^="file://"]')?.forEach(processLink);
         }
       }
     });
