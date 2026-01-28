@@ -107,8 +107,20 @@ impl DirectoryUri {
 
         // Unix absolute path: directory:///home/tagawa -> /home/tagawa
         if after_scheme.starts_with('/') {
+            // Also check for Windows drive letter without colon after the leading slash
+            // e.g., directory:///C/Windows -> /C/Windows -> C:/Windows
+            let path_after_slash = decoded.strip_prefix('/').unwrap_or(&decoded);
+            if is_windows_drive_letter_without_colon(path_after_slash) {
+                let fixed = fix_windows_drive_letter(path_after_slash);
+                let windows_path = fixed.replace('/', "\\");
+                return Ok(PathBuf::from(windows_path));
+            }
             return Ok(PathBuf::from(decoded));
         }
+
+        // Fix Windows drive letter without colon (e.g., C/Windows -> C:/Windows)
+        // Some browsers convert "C:/" to "C/" when handling file:// URLs
+        let decoded = fix_windows_drive_letter(&decoded);
 
         // Windows drive letter pattern (e.g., C:/)
         if is_windows_drive_letter(&decoded) {
@@ -168,6 +180,33 @@ fn is_windows_drive_letter(s: &str) -> bool {
     )
 }
 
+/// Check if a string starts with a Windows drive letter without colon (e.g., "C/").
+/// Some browsers convert "C:/" to "C/" when handling file:// URLs.
+fn is_windows_drive_letter_without_colon(s: &str) -> bool {
+    let mut chars = s.chars();
+    matches!(
+        (chars.next(), chars.next()),
+        (Some(c), Some('/')) if c.is_ascii_alphabetic()
+    )
+}
+
+/// Fix Windows drive letter without colon.
+/// Converts "C/path" to "C:/path".
+fn fix_windows_drive_letter(s: &str) -> String {
+    if is_windows_drive_letter_without_colon(s) {
+        let mut result = String::with_capacity(s.len() + 1);
+        let mut chars = s.chars();
+        if let Some(drive) = chars.next() {
+            result.push(drive);
+            result.push(':');
+            result.push_str(chars.as_str());
+        }
+        result
+    } else {
+        s.to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -207,6 +246,27 @@ mod tests {
     fn test_windows_drive_root() {
         let uri = DirectoryUri::parse("directory://D:/").unwrap();
         assert_eq!(uri.path(), &PathBuf::from("D:\\"));
+    }
+
+    // Windows drive letter without colon tests (browser compatibility)
+    // Some browsers convert "C:/" to "C/" when handling file:// URLs
+    #[test]
+    fn test_windows_drive_without_colon() {
+        let uri = DirectoryUri::parse("directory://C/Users/tagawa").unwrap();
+        assert_eq!(uri.path(), &PathBuf::from("C:\\Users\\tagawa"));
+    }
+
+    #[test]
+    fn test_windows_drive_without_colon_lowercase() {
+        let uri = DirectoryUri::parse("directory://d/Windows").unwrap();
+        assert_eq!(uri.path(), &PathBuf::from("d:\\Windows"));
+    }
+
+    #[test]
+    fn test_windows_drive_without_colon_triple_slash() {
+        // directory:///C/Windows -> C:\Windows
+        let uri = DirectoryUri::parse("directory:///C/Windows").unwrap();
+        assert_eq!(uri.path(), &PathBuf::from("C:\\Windows"));
     }
 
     #[test]
