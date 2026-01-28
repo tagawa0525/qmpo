@@ -47,14 +47,16 @@ cargo build --release
 ### Register URI Handler
 
 ```bash
-# Linux
-./target/release/qmpo-lau register
+./target/release/qmpo-lau register   # Linux/macOS
+.\target\release\qmpo-lau.exe register   # Windows
+```
 
-# macOS
-./target/release/qmpo-lau register
+### Arch Linux
 
-# Windows
-.\target\release\qmpo-lau.exe register
+```bash
+git clone https://github.com/tagawa0525/qmpo.git
+cd qmpo/aur
+makepkg -si
 ```
 
 ### NixOS / Home Manager
@@ -153,6 +155,7 @@ qmpo/
 | Windows | `%LOCALAPPDATA%\qmpo\` | Registry (HKCU) |
 | macOS | `~/Applications/qmpo.app/` | Launch Services |
 | Linux | `~/.local/bin/` | XDG MIME + Desktop file |
+| Arch Linux | `/usr/lib/qmpo/` | PKGBUILD + pacman hooks |
 | NixOS | `/nix/store/...` | Flake + Home Manager |
 
 ## License
