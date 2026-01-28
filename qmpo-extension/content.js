@@ -156,16 +156,18 @@
     links.forEach(processLink);
   }
 
-  // Open directory:// URL via background script
+  // Open directory:// URL via hidden iframe (triggers protocol handler)
   function openDirectoryUrl(url) {
-    chrome.runtime.sendMessage({ action: 'openDirectory', url }, () => {
-      if (chrome.runtime.lastError) {
-        console.error('qmpo: Failed to open directory:', chrome.runtime.lastError);
-        showToast('Failed to open directory. Is qmpo installed?', true);
-      } else if (response && response.error) {
-        showToast(response.error, true);
-      }
-    });
+    // Create a hidden iframe to trigger the protocol handler
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = url;
+    document.body.appendChild(iframe);
+
+    // Remove the iframe after a short delay
+    setTimeout(() => {
+      iframe.remove();
+    }, 1000);
   }
 
   // Handle click events on file:// links
