@@ -349,13 +349,6 @@ name = "qmpo"
 version = "0.1.0"
 dependencies = [
  "clap",
- "qmpo-core",
-]
-
-[[package]]
-name = "qmpo-core"
-version = "0.1.0"
-dependencies = [
  "percent-encoding",
  "thiserror",
  "url",
@@ -368,7 +361,6 @@ dependencies = [
  "clap",
  "directories",
  "plist",
- "qmpo-core",
  "thiserror",
  "winreg",
 ]

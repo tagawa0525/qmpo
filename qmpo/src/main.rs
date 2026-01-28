@@ -4,11 +4,14 @@
 
 #![windows_subsystem = "windows"]
 
+mod error;
+mod uri;
+
 use std::path::Path;
 use std::process::Command;
 
 use clap::Parser;
-use qmpo_core::DirectoryUri;
+use uri::DirectoryUri;
 
 #[derive(Parser, Debug)]
 #[command(name = "qmpo")]
