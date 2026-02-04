@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>qmpo テストページ - Linux</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 { color: #333; }
+    h2 { color: #666; margin-top: 30px; }
+    .platform-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .platform-nav a {
+      padding: 8px 16px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #333;
+    }
+    .platform-nav a.active {
+      background: #4285f4;
+      color: white;
+    }
+    .test-links {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .test-links a {
+      display: block;
+      padding: 10px;
+      margin: 5px 0;
+      background: white;
+      border-radius: 4px;
+      color: #4285f4;
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .test-links a:hover {
+      background: #e8f0fe;
+    }
+    .note {
+      background: #fff3cd;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .success {
+      background: #d4edda;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    code {
+      background: #eee;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <h1>qmpo テストページ - Linux</h1>
+
+  <div class="platform-nav">
+    <a href="test-linux-ja.html" class="active">Linux</a>
+    <a href="test-macos-ja.html">macOS</a>
+    <a href="test-windows-ja.html">Windows</a>
+    <span style="margin-left: auto;"></span>
+    <a href="test-linux.html">English</a>
+  </div>
+
+  <h2>仕組み</h2>
+  <p>qmpoは3つのコンポーネントで構成されています：</p>
+  <ol>
+    <li><strong>qmpo</strong> - <code>directory://</code> URIを受け取り、ファイルマネージャーで開くURIハンドラー</li>
+    <li><strong>qmpo-lau</strong> - qmpoをシステムの <code>directory://</code> プロトコルハンドラーとして登録するツール</li>
+    <li><strong>Chrome拡張機能</strong> - Webページ上の <code>file://</code> リンクを <code>directory://</code> に変換</li>
+  </ol>
+
+  <h3>Linuxでの実装</h3>
+  <ul>
+    <li><code>~/.local/share/applications/qmpo.desktop</code> にデスクトップエントリを作成</li>
+    <li>バイナリを <code>~/.local/bin/qmpo</code> にインストール</li>
+    <li><code>xdg-mime</code> でMIMEハンドラーとして登録</li>
+    <li><code>xdg-open</code> でディレクトリを開く</li>
+  </ul>
+
+  <h3>Chrome拡張機能</h3>
+  <ul>
+    <li>Content scriptが各ページで <code>file://</code> リンクを検出</li>
+    <li>クリック時に <code>file://</code> URLを <code>directory://</code> URLに変換</li>
+    <li>隠しiframeでシステムのプロトコルハンドラーをトリガー</li>
+    <li>変換されたリンクにフォルダアイコン（📂）を表示</li>
+  </ul>
+
+  <div class="note">
+    <strong>セットアップが必要です：</strong>
+    <p>qmpoがインストール・登録されていることを確認してください: <code>qmpo-lau status</code></p>
+  </div>
+
+  <h2>テストリンク (directory://)</h2>
+  <p>これらの <code>directory://</code> リンクをクリックしてファイルマネージャーで開きます。</p>
+
+  <div class="test-links">
+    <a href="directory:///home">directory:///home (ホームの親ディレクトリ)</a>
+    <a href="directory:///etc/hosts">directory:///etc/hosts (ファイル - 選択状態で開く)</a>
+    <a href="directory:///etc">directory:///etc (システム設定ディレクトリ)</a>
+    <a href="directory:///usr/share">directory:///usr/share (共有リソース)</a>
+    <a href="directory:///tmp">directory:///tmp (一時ディレクトリ)</a>
+  </div>
+
+  <h2>テストリンク (file://)</h2>
+  <p>これらの <code>file://</code> リンクをクリックしてChrome拡張機能の動作をテストします。</p>
+
+  <div class="test-links">
+    <a href="file:///home">file:///home (ホームの親ディレクトリ)</a>
+    <a href="file:///etc/hosts">file:///etc/hosts (ファイル)</a>
+    <a href="file:///etc">file:///etc (システム設定ディレクトリ)</a>
+    <a href="file:///usr/share">file:///usr/share (共有リソース)</a>
+    <a href="file:///tmp">file:///tmp (一時ディレクトリ)</a>
+  </div>
+
+  <h2>期待される動作</h2>
+  <div class="success">
+    <ul>
+      <li><strong>directory://</strong> - システムのファイルマネージャー（Nautilus、Dolphinなど）で開く</li>
+      <li><strong>file://</strong> - Chrome拡張機能（インストール済みの場合）で処理</li>
+      <li>ファイルリンクをクリックすると、親フォルダが開きファイルが選択される</li>
+      <li>ディレクトリリンクをクリックすると、そのディレクトリが開く</li>
+    </ul>
+  </div>
+</body>
+</html>

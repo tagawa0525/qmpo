@@ -74,7 +74,33 @@
     <a href="test-linux.html">Linux</a>
     <a href="test-macos.html" class="active">macOS</a>
     <a href="test-windows.html">Windows</a>
+    <span style="margin-left: auto;"></span>
+    <a href="test-macos-ja.html">日本語</a>
   </div>
+
+  <h2>How It Works</h2>
+  <p>qmpo consists of three components:</p>
+  <ol>
+    <li><strong>qmpo</strong> - The URI handler that receives <code>directory://</code> URIs and opens them in your file manager</li>
+    <li><strong>qmpo-lau</strong> - A registration tool that sets up qmpo as the system's <code>directory://</code> protocol handler</li>
+    <li><strong>Chrome Extension</strong> - Converts <code>file://</code> links to <code>directory://</code> on web pages</li>
+  </ol>
+
+  <h3>macOS Implementation</h3>
+  <ul>
+    <li>Creates an app bundle at <code>~/Applications/qmpo.app</code></li>
+    <li>Registers the <code>directory://</code> URL scheme via <code>Info.plist</code></li>
+    <li>Registers with Launch Services using <code>lsregister</code></li>
+    <li>Opens directories using the <code>open</code> command</li>
+  </ul>
+
+  <h3>Chrome Extension</h3>
+  <ul>
+    <li>Content script runs on every page and detects <code>file://</code> links</li>
+    <li>Converts <code>file://</code> URLs to <code>directory://</code> URLs when clicked</li>
+    <li>Triggers the system protocol handler via a hidden iframe</li>
+    <li>Adds a folder icon (📂) to converted links as a visual indicator</li>
+  </ul>
 
   <div class="note">
     <strong>Setup Required:</strong>

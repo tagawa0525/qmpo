@@ -22,7 +22,56 @@ qmpoは `directory://` URIスキームを提供し、ファイルマネージャ
 | Windows (UNC) | `\\server\share` | `directory://server/share` |
 | macOS/Linux | `/home/tagawa` | `directory:///home/tagawa` |
 
+## 仕組み
+
+qmpoは3つのコンポーネントで構成されています：
+
+1. **qmpo** - `directory://` URIを受け取り、ファイルマネージャーで開く
+   URIハンドラー
+2. **qmpo-lau** - qmpoをシステムの `directory://` プロトコルハンドラー
+   として登録するツール
+3. **Chrome拡張機能** - Webページ上の `file://` リンクを `directory://`
+   に変換
+
+### Windows（実装）
+
+- Windowsレジストリにプロトコルハンドラーを登録（`HKCU\Software\Classes\directory`）
+- バイナリを `%LOCALAPPDATA%\qmpo\qmpo.exe` にインストール
+- `explorer.exe` でディレクトリを開く
+
+### macOS（実装）
+
+- `~/Applications/qmpo.app` にアプリバンドルを作成
+- `Info.plist` で `directory://` URLスキームを登録
+- `lsregister` でLaunch Servicesに登録
+- `open` コマンドでディレクトリを開く
+
+### Linux（実装）
+
+- `~/.local/share/applications/qmpo.desktop` にデスクトップエントリを作成
+- バイナリを `~/.local/bin/qmpo` にインストール
+- `xdg-mime` でMIMEハンドラーとして登録
+- `xdg-open` でディレクトリを開く
+
+### Chrome拡張機能（仕組み）
+
+- Content scriptが各ページで `file://` リンクを検出
+- クリック時に `file://` URLを `directory://` URLに変換
+- 隠しiframeでシステムのプロトコルハンドラーをトリガー
+- 変換されたリンクにフォルダアイコン（📂）を表示
+- ドメインの許可リスト/ブロックリストに対応
+
 ## インストール
+
+### Windows
+
+[GitHub Releases](https://github.com/tagawa0525/qmpo/releases)から最新版をダウンロード：
+
+1. `qmpo-windows-x64.zip` をダウンロード
+2. アーカイブを展開
+3. `qmpo-lau.exe` を実行（ダブルクリックまたはコマンドプロンプトから実行）
+
+これにより、qmpoが `directory://` プロトコルハンドラーとして自動的に登録されます。
 
 ### Arch Linux
 
@@ -67,9 +116,11 @@ Chrome拡張機能は `file://` リンクを自動的に `directory://` に変�
 
 qmpoのインストール確認用テストページ:
 
-- [Linux](docs/test-linux.html)
-- [macOS](docs/test-macos.html)
-- [Windows](docs/test-windows.html)
+| OS | English | 日本語 |
+| --- | --- | --- |
+| Linux | [test-linux.html](docs/test-linux.html) | [test-linux-ja.html](docs/test-linux-ja.html) |
+| macOS | [test-macos.html](docs/test-macos.html) | [test-macos-ja.html](docs/test-macos-ja.html) |
+| Windows | [test-windows.html](docs/test-windows.html) | [test-windows-ja.html](docs/test-windows-ja.html) |
 
 ## ライセンス
 
