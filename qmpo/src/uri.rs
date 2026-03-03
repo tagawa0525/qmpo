@@ -105,6 +105,17 @@ impl DirectoryUri {
 
         let decoded = decode_percent_encoding(after_scheme)?;
 
+        // UNC path via 4-slash form: directory:////server/share/...
+        // After stripping "directory://", after_scheme = "//server/..."
+        // On Windows, PathBuf preserves forward slashes and explorer.exe cannot
+        // handle //server/... form, so convert explicitly to \\server\... here.
+        #[cfg(target_os = "windows")]
+        if after_scheme.starts_with("//") {
+            let after_double_slash = decoded.strip_prefix("//").unwrap_or(&decoded);
+            let unc = format!("\\\\{}", after_double_slash.replace('/', "\\"));
+            return Ok(PathBuf::from(unc));
+        }
+
         // Unix absolute path: directory:///home/tagawa -> /home/tagawa
         if after_scheme.starts_with('/') {
             // Also check for Windows drive letter without colon after the leading slash

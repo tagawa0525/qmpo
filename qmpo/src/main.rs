@@ -8,6 +8,8 @@ mod error;
 mod log;
 mod uri;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
 
@@ -47,10 +49,19 @@ fn run(uri_str: &str) -> Result<(), Box<dyn std::error::Error>> {
         return Err(format!("Path does not exist: {}", path.display()).into());
     }
 
-    // Canonicalize to resolve symlinks and prevent path traversal attacks
-    let canonical_path = path
-        .canonicalize()
-        .map_err(|e| format!("Failed to resolve path {}: {}", path.display(), e))?;
+    // Canonicalize to resolve symlinks and prevent path traversal attacks.
+    // For UNC network paths with ABE (Access-Based Enumeration), canonicalize()
+    // may fail with Access Denied (os error 5) even when the path is accessible,
+    // because it traverses each ancestor directory internally.
+    // The URI parser already produces a proper \\server\... path, so fall back
+    // to the original path as-is.
+    let canonical_path = match path.canonicalize() {
+        Ok(p) => p,
+        Err(e) => {
+            log::info(&format!("canonicalize failed ({}), using original path", e));
+            path.to_path_buf()
+        }
+    };
 
     log::info(&format!("Opening: {}", canonical_path.display()));
 
@@ -64,12 +75,21 @@ fn run(uri_str: &str) -> Result<(), Box<dyn std::error::Error>> {
 /// If the path is a file, opens the parent directory with the file selected.
 #[cfg(target_os = "windows")]
 fn open_in_file_manager(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    if path.is_file() {
-        // Open parent directory with file selected
-        let arg = format!("/select,{}", path.display());
-        Command::new("explorer.exe").arg(&arg).spawn()?;
+    // path.is_file() can return false on UNC paths due to permission checks,
+    // even when the file exists and is accessible. Use extension as a fallback.
+    let treat_as_file = path.is_file() || (!path.is_dir() && path.extension().is_some());
+
+    if treat_as_file {
+        // explorer.exe uses its own command-line parser for /select,<path>.
+        // Paths with special characters like ( ) 【 】 ～ break this parser
+        // unless the path is wrapped in double-quotes.
+        // raw_arg() bypasses Rust's automatic quoting so we control the exact string.
+        let raw = format!("/select,\"{}\"", path.to_string_lossy());
+        Command::new("explorer.exe").raw_arg(&raw).spawn()?;
     } else {
-        Command::new("explorer.exe").arg(path).spawn()?;
+        Command::new("explorer.exe")
+            .raw_arg(format!("\"{}\"", path.to_string_lossy()))
+            .spawn()?;
     }
     Ok(())
 }
