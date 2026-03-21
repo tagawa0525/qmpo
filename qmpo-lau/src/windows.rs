@@ -11,6 +11,31 @@ use crate::{LauError, Result, find_qmpo_executable};
 
 const PROTOCOL_NAME: &str = "directory";
 
+/// Find an existing policy value whose JSON contains `"protocol":"directory"`.
+/// Returns the value name (e.g. "1", "2") if found.
+fn find_directory_policy_entry(key: &RegKey) -> Option<String> {
+    for entry in key.enum_values().flatten() {
+        let value_name = entry.0;
+        if let Ok(s) = key.get_value::<String, _>(&value_name)
+            && s.contains(r#""protocol":"directory""#)
+        {
+            return Some(value_name);
+        }
+    }
+    None
+}
+
+/// Find the next available numbered slot (e.g. "1", "2", "3") in a policy key.
+fn next_policy_slot(key: &RegKey) -> String {
+    let mut max: u32 = 0;
+    for name in key.enum_values().flatten() {
+        if let Ok(n) = name.0.parse::<u32>() {
+            max = max.max(n);
+        }
+    }
+    (max + 1).to_string()
+}
+
 pub fn register(path: Option<PathBuf>) -> Result<()> {
     let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
 
@@ -73,6 +98,29 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
         .set_value("", &command)
         .map_err(|e| LauError::Registry(e.to_string()))?;
 
+    // Set browser policies to suppress protocol launch confirmation dialog.
+    // AutoLaunchProtocolsFromOrigins allows the directory:// protocol to launch
+    // without the "{server} wants to open this application" prompt.
+    let policy_value = r#"{"protocol":"directory","allowed_origins":["*"]}"#;
+
+    for browser_path in [
+        r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
+        r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
+    ] {
+        let (policy_key, _) = hkcu
+            .create_subkey(browser_path)
+            .map_err(|e| LauError::Registry(e.to_string()))?;
+
+        // Find a free slot or reuse an existing "directory" entry to avoid
+        // overwriting values set by other applications.
+        let existing_name = find_directory_policy_entry(&policy_key);
+        let value_name = existing_name.unwrap_or_else(|| next_policy_slot(&policy_key));
+
+        policy_key
+            .set_value(&value_name, &policy_value)
+            .map_err(|e| LauError::Registry(e.to_string()))?;
+    }
+
     println!("Registered qmpo as handler for directory:// URIs");
     Ok(())
 }
@@ -85,6 +133,19 @@ pub fn unregister() -> Result<()> {
     if let Ok(classes) = hkcu.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
         let _ = classes.delete_subkey_all(PROTOCOL_NAME);
         println!("Removed registry entries");
+    }
+
+    // Remove only our "directory" protocol entry from browser policy keys,
+    // leaving entries set by other applications intact.
+    for browser_path in [
+        r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
+        r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
+    ] {
+        if let Ok(policy_key) = hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE)
+            && let Some(name) = find_directory_policy_entry(&policy_key)
+        {
+            let _ = policy_key.delete_value(&name);
+        }
     }
 
     // Remove installed binary
@@ -109,22 +170,71 @@ pub fn status() -> Result<()> {
         println!("qmpo binary: not installed");
     }
 
-    // Check registry
+    // Check registry — protocol handler
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let registry_path = format!("Software\\Classes\\{PROTOCOL_NAME}\\shell\\open\\command");
+    let protocol_path = format!("Software\\Classes\\{PROTOCOL_NAME}");
 
-    match hkcu.open_subkey(&registry_path) {
-        Ok(key) => {
-            let command: std::result::Result<String, _> = key.get_value("");
-            if let Ok(cmd) = command {
-                println!("Registry: registered");
-                println!("Command: {cmd}");
-            } else {
-                println!("Registry: registered (no command)");
+    match hkcu.open_subkey(&protocol_path) {
+        Ok(protocol_key) => {
+            let description: std::result::Result<String, _> = protocol_key.get_value("");
+            println!(
+                "Protocol key: {}",
+                description.as_deref().unwrap_or("(no description)")
+            );
+
+            let has_url_protocol = protocol_key.get_value::<String, _>("URL Protocol").is_ok();
+            println!(
+                "URL Protocol marker: {}",
+                if has_url_protocol { "set" } else { "missing" }
+            );
+
+            let command_path = format!("{protocol_path}\\shell\\open\\command");
+            match hkcu.open_subkey(&command_path) {
+                Ok(cmd_key) => {
+                    let command: std::result::Result<String, _> = cmd_key.get_value("");
+                    if let Ok(cmd) = command {
+                        println!("Command: {cmd}");
+                    } else {
+                        println!("Command: (not set)");
+                    }
+                }
+                Err(_) => {
+                    println!("Command: (not set)");
+                }
             }
         }
         Err(_) => {
-            println!("Registry: not registered");
+            println!("Protocol key: not registered");
+        }
+    }
+
+    // Check browser policies
+    for (name, browser_path) in [
+        (
+            "Edge",
+            r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
+        ),
+        (
+            "Chrome",
+            r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
+        ),
+    ] {
+        match hkcu.open_subkey(browser_path) {
+            Ok(key) => {
+                if let Some(entry_name) = find_directory_policy_entry(&key) {
+                    let value: std::result::Result<String, _> = key.get_value(&entry_name);
+                    if let Ok(v) = value {
+                        println!("{name} auto-launch policy: {v}");
+                    } else {
+                        println!("{name} auto-launch policy: entry exists (no value)");
+                    }
+                } else {
+                    println!("{name} auto-launch policy: not set");
+                }
+            }
+            Err(_) => {
+                println!("{name} auto-launch policy: not set");
+            }
         }
     }
 

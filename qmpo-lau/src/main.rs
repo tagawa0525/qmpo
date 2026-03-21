@@ -166,21 +166,23 @@ fn status() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
 
     #[test]
-    fn test_find_qmpo_executable_not_found() {
-        // When run in a directory without qmpo, should return error
-        let temp_dir = std::env::temp_dir().join("qmpo_test_empty");
-        let _ = fs::create_dir_all(&temp_dir);
-        let original_dir = std::env::current_dir().unwrap();
-
-        std::env::set_current_dir(&temp_dir).unwrap();
-        let result = find_qmpo_executable();
-        std::env::set_current_dir(original_dir).unwrap();
-
-        assert!(result.is_err());
-        let _ = fs::remove_dir_all(&temp_dir);
+    fn test_find_qmpo_executable_returns_existing_path() {
+        // When qmpo exists (e.g. in target/debug or target/release alongside
+        // the test binary), find_qmpo_executable should return an existing path.
+        // When it doesn't exist, it should return an error.
+        match find_qmpo_executable() {
+            Ok(path) => assert!(
+                path.exists(),
+                "returned path should exist: {}",
+                path.display()
+            ),
+            Err(e) => assert!(
+                matches!(e, LauError::ExecutableNotLocated),
+                "unexpected error: {e}"
+            ),
+        }
     }
 
     #[test]
