@@ -76,8 +76,16 @@ fn run(uri_str: &str) -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(target_os = "windows")]
 fn open_in_file_manager(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     // path.is_file() can return false on UNC paths due to permission checks,
-    // even when the file exists and is accessible. Use extension as a fallback.
-    let treat_as_file = path.is_file() || (!path.is_dir() && path.extension().is_some());
+    // even when the file exists and is accessible. As a fallback, when both
+    // is_file() and is_dir() report false but the path exists and has an
+    // extension, treat it as a file-like target.
+    let treat_as_file = if path.is_file() {
+        true
+    } else if path.is_dir() {
+        false
+    } else {
+        path.exists() && path.extension().is_some()
+    };
 
     if treat_as_file {
         // explorer.exe uses its own command-line parser for /select,<path>.
