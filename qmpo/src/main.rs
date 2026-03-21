@@ -4,6 +4,7 @@
 
 #![windows_subsystem = "windows"]
 
+mod config;
 mod error;
 mod log;
 mod uri;
@@ -174,9 +175,21 @@ fn extract_unc_server(path: &Path) -> Option<String> {
     Some(server.to_string())
 }
 
-/// Verify that a UNC server resolves only to private/link-local IP addresses.
+/// Verify that a UNC server is either whitelisted in config.toml or resolves
+/// only to private/link-local IP addresses.
 /// Rejects external servers to prevent NTLM credential leaks via rogue SMB servers.
 fn validate_unc_server(server: &str) -> Result<(), Box<dyn std::error::Error>> {
+    validate_unc_server_with_config(server, &config::Config::load())
+}
+
+fn validate_unc_server_with_config(
+    server: &str,
+    config: &config::Config,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if config.security.is_server_allowed(server) {
+        return Ok(());
+    }
+
     if let Ok(ip) = server.parse::<IpAddr>() {
         if !is_private_ip(ip) {
             return Err(format!(
@@ -292,28 +305,58 @@ mod unc_tests {
         assert!(!is_private_ip("2001:db8::1".parse().unwrap()));
     }
 
+    fn empty_config() -> config::Config {
+        config::Config::default()
+    }
+
+    fn config_with_allowed(servers: &[&str]) -> config::Config {
+        config::Config {
+            security: config::SecurityConfig {
+                allowed_servers: servers.iter().map(|s| s.to_string()).collect(),
+            },
+        }
+    }
+
     // validate_unc_server tests
     #[test]
     fn test_validate_private_ip_server() {
-        assert!(validate_unc_server("192.168.1.1").is_ok());
-        assert!(validate_unc_server("10.0.0.1").is_ok());
-        assert!(validate_unc_server("172.16.0.1").is_ok());
+        let cfg = empty_config();
+        assert!(validate_unc_server_with_config("192.168.1.1", &cfg).is_ok());
+        assert!(validate_unc_server_with_config("10.0.0.1", &cfg).is_ok());
+        assert!(validate_unc_server_with_config("172.16.0.1", &cfg).is_ok());
     }
 
     #[test]
     fn test_validate_public_ip_server() {
-        assert!(validate_unc_server("8.8.8.8").is_err());
-        assert!(validate_unc_server("203.0.113.1").is_err());
+        let cfg = empty_config();
+        assert!(validate_unc_server_with_config("8.8.8.8", &cfg).is_err());
+        assert!(validate_unc_server_with_config("203.0.113.1", &cfg).is_err());
     }
 
     #[test]
     fn test_validate_loopback_server() {
-        assert!(validate_unc_server("127.0.0.1").is_ok());
+        let cfg = empty_config();
+        assert!(validate_unc_server_with_config("127.0.0.1", &cfg).is_ok());
     }
 
     #[test]
     fn test_validate_unresolvable_server() {
-        // Non-existent hostname — DNS fails, should be Ok (no SMB connection possible)
-        assert!(validate_unc_server("this-host-does-not-exist-qmpo.invalid").is_ok());
+        let cfg = empty_config();
+        assert!(validate_unc_server_with_config("this-host-does-not-exist-qmpo.invalid", &cfg).is_ok());
+    }
+
+    #[test]
+    fn test_validate_whitelisted_public_ip() {
+        let cfg = config_with_allowed(&["203.0.113.50"]);
+        assert!(validate_unc_server_with_config("203.0.113.50", &cfg).is_ok());
+        // Non-whitelisted public IP still blocked
+        assert!(validate_unc_server_with_config("203.0.113.51", &cfg).is_err());
+    }
+
+    #[test]
+    fn test_validate_whitelisted_hostname() {
+        let cfg = config_with_allowed(&["fileserver.example.com"]);
+        assert!(validate_unc_server_with_config("fileserver.example.com", &cfg).is_ok());
+        assert!(validate_unc_server_with_config("FILESERVER.EXAMPLE.COM", &cfg).is_ok());
     }
 }
