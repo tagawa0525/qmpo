@@ -16,21 +16,26 @@ qmpoは `directory://` URIスキームを提供し、ファイルマネージャ
 
 ## URI形式
 
-| OS | パス | URI |
-| --- | --- | --- |
-| Windows | `C:\Users\tagawa` | `directory://C:/Users/tagawa` |
-| Windows (UNC) | `\\server\share` | `directory://server/share` |
-| macOS/Linux | `/home/tagawa` | `directory:///home/tagawa` |
+| OS            | パス              | URI                           |
+| ------------- | ----------------- | ----------------------------- |
+| Windows       | `C:\Users\tagawa` | `directory://C:/Users/tagawa` |
+| Windows (UNC) | `\\server\share`  | `directory://server/share`    |
+| macOS/Linux   | `/home/tagawa`    | `directory:///home/tagawa`    |
 
 ## 仕組み
 
 qmpoは3つのコンポーネントで構成されています：
 
 1. **qmpo** - `directory://` URIを受け取り、ファイルマネージャーで開く
+
    URIハンドラー
+
 2. **qmpo-lau** - qmpoをシステムの `directory://` プロトコルハンドラー
+
    として登録するツール
+
 3. **Chrome拡張機能** - Webページ上の `file://` リンクを `directory://`
+
    に変換
 
 ### Windows（実装）
@@ -118,10 +123,10 @@ Chrome拡張機能は `file://` リンクを自動的に `directory://` に変�
 
 qmpoのインストール確認用テストページ:
 
-| OS | English | 日本語 |
-| --- | --- | --- |
-| Linux | [test-linux.html](docs/test-linux.html) | [test-linux-ja.html](docs/test-linux-ja.html) |
-| macOS | [test-macos.html](docs/test-macos.html) | [test-macos-ja.html](docs/test-macos-ja.html) |
+| OS      | English                                     | 日本語                                            |
+| ------- | ------------------------------------------- | ------------------------------------------------- |
+| Linux   | [test-linux.html](docs/test-linux.html)     | [test-linux-ja.html](docs/test-linux-ja.html)     |
+| macOS   | [test-macos.html](docs/test-macos.html)     | [test-macos-ja.html](docs/test-macos-ja.html)     |
 | Windows | [test-windows.html](docs/test-windows.html) | [test-windows-ja.html](docs/test-windows-ja.html) |
 
 ## ライセンス

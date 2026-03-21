@@ -16,21 +16,26 @@ directories (not files) in your file manager. With the
 
 ## URI Format
 
-| OS | Path | URI |
-| --- | --- | --- |
-| Windows | `C:\Users\tagawa` | `directory://C:/Users/tagawa` |
-| Windows (UNC) | `\\server\share` | `directory://server/share` |
-| macOS/Linux | `/home/tagawa` | `directory:///home/tagawa` |
+| OS            | Path              | URI                           |
+| ------------- | ----------------- | ----------------------------- |
+| Windows       | `C:\Users\tagawa` | `directory://C:/Users/tagawa` |
+| Windows (UNC) | `\\server\share`  | `directory://server/share`    |
+| macOS/Linux   | `/home/tagawa`    | `directory:///home/tagawa`    |
 
 ## How It Works
 
 qmpo consists of three components:
 
 1. **qmpo** - The URI handler that receives `directory://` URIs and opens
+
    them in your file manager
+
 2. **qmpo-lau** - A registration tool that sets up qmpo as the system's
+
    `directory://` protocol handler
+
 3. **Chrome Extension** - Converts `file://` links to `directory://` on web
+
    pages
 
 ### Windows (Implementation)
@@ -119,10 +124,10 @@ via the extension popup.
 
 Test pages are available for verifying qmpo installation:
 
-| OS | English | 日本語 |
-| --- | --- | --- |
-| Linux | [test-linux.html](docs/test-linux.html) | [test-linux-ja.html](docs/test-linux-ja.html) |
-| macOS | [test-macos.html](docs/test-macos.html) | [test-macos-ja.html](docs/test-macos-ja.html) |
+| OS      | English                                     | 日本語                                            |
+| ------- | ------------------------------------------- | ------------------------------------------------- |
+| Linux   | [test-linux.html](docs/test-linux.html)     | [test-linux-ja.html](docs/test-linux-ja.html)     |
+| macOS   | [test-macos.html](docs/test-macos.html)     | [test-macos-ja.html](docs/test-macos-ja.html)     |
 | Windows | [test-windows.html](docs/test-windows.html) | [test-windows-ja.html](docs/test-windows-ja.html) |
 
 ## License
