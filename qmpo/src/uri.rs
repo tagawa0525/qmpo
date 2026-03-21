@@ -180,11 +180,12 @@ fn is_windows_drive_letter_without_colon(s: &str) -> bool {
     )
 }
 
-/// Convert a forward-slash UNC path (e.g., `//server/share/folder`) to
+/// Convert a forward-slash UNC-style path (e.g., `//server/share/folder`) to
 /// backslash form (`\\server\share\folder`).
 ///
-/// The input must start with `//`. If not, the entire string is treated as
-/// the server-relative portion (i.e. `\\` is still prepended).
+/// If the input starts with `//`, that prefix is removed before conversion.
+/// Otherwise, the entire string is treated as the server-relative portion
+/// and `\\` is still prepended.
 #[cfg(any(target_os = "windows", test))]
 fn convert_forward_slash_unc_to_backslash(s: &str) -> PathBuf {
     let server_and_path = s.strip_prefix("//").unwrap_or(s);
