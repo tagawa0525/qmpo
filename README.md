@@ -36,7 +36,7 @@ qmpo consists of three components:
 ### Windows (Implementation)
 
 - Registers a protocol handler in the Windows Registry (`HKCU\Software\Classes\directory`)
-- Installs the binary to `%LOCALAPPDATA%\qmpo\qmpo.exe`
+- Installs the binary to `%PROGRAMFILES%\qmpo\qmpo.exe`
 - Opens directories using `explorer.exe`
 
 ### macOS (Implementation)

@@ -36,7 +36,7 @@ qmpoは3つのコンポーネントで構成されています：
 ### Windows（実装）
 
 - Windowsレジストリにプロトコルハンドラーを登録（`HKCU\Software\Classes\directory`）
-- バイナリを `%LOCALAPPDATA%\qmpo\qmpo.exe` にインストール
+- バイナリを `%PROGRAMFILES%\qmpo\qmpo.exe` にインストール
 - `explorer.exe` でディレクトリを開く
 
 ### macOS（実装）
