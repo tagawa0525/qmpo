@@ -178,6 +178,10 @@ fn extract_unc_server(path: &Path) -> Option<String> {
 /// Verify that a UNC server is either whitelisted in config.toml or resolves
 /// only to private/link-local IP addresses.
 /// Rejects external servers to prevent NTLM credential leaks via rogue SMB servers.
+///
+/// Note: There is an inherent TOCTOU gap between this DNS check and the subsequent
+/// filesystem access (`path.exists()`). Exploiting this would require DNS cache
+/// poisoning between the two calls, which is a low-probability attack vector.
 fn validate_unc_server(server: &str) -> Result<(), Box<dyn std::error::Error>> {
     validate_unc_server_with_config(server, &config::Config::load())
 }
@@ -263,6 +267,12 @@ mod unc_tests {
         assert_eq!(extract_unc_server(&path), None);
     }
 
+    #[test]
+    fn test_extract_unc_server_bare_prefix() {
+        let path = PathBuf::from(r"\\");
+        assert_eq!(extract_unc_server(&path), None);
+    }
+
     // is_private_ip tests
     #[test]
     fn test_private_ipv4() {
@@ -288,6 +298,8 @@ mod unc_tests {
         assert!(!is_private_ip("8.8.8.8".parse().unwrap()));
         assert!(!is_private_ip("203.0.113.1".parse().unwrap()));
         assert!(!is_private_ip("1.1.1.1".parse().unwrap()));
+        // 172.32.0.1 is just outside the 172.16-31 private range
+        assert!(!is_private_ip("172.32.0.1".parse().unwrap()));
     }
 
     #[test]

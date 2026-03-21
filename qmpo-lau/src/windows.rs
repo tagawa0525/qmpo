@@ -11,6 +11,31 @@ use crate::{LauError, Result, find_qmpo_executable};
 
 const PROTOCOL_NAME: &str = "directory";
 
+/// Find an existing policy value whose JSON contains `"protocol":"directory"`.
+/// Returns the value name (e.g. "1", "2") if found.
+fn find_directory_policy_entry(key: &RegKey) -> Option<String> {
+    for entry in key.enum_values().flatten() {
+        let value_name = entry.0;
+        if let Ok(s) = key.get_value::<String, _>(&value_name) {
+            if s.contains(r#""protocol":"directory""#) {
+                return Some(value_name);
+            }
+        }
+    }
+    None
+}
+
+/// Find the next available numbered slot (e.g. "1", "2", "3") in a policy key.
+fn next_policy_slot(key: &RegKey) -> String {
+    let mut max: u32 = 0;
+    for name in key.enum_values().flatten() {
+        if let Ok(n) = name.0.parse::<u32>() {
+            max = max.max(n);
+        }
+    }
+    (max + 1).to_string()
+}
+
 pub fn register(path: Option<PathBuf>) -> Result<()> {
     let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
 
@@ -86,8 +111,14 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
         let (policy_key, _) = hkcu
             .create_subkey(browser_path)
             .map_err(|e| LauError::Registry(e.to_string()))?;
+
+        // Find a free slot or reuse an existing "directory" entry to avoid
+        // overwriting values set by other applications.
+        let existing_name = find_directory_policy_entry(&policy_key);
+        let value_name = existing_name.unwrap_or_else(|| next_policy_slot(&policy_key));
+
         policy_key
-            .set_value("1", &policy_value)
+            .set_value(&value_name, &policy_value)
             .map_err(|e| LauError::Registry(e.to_string()))?;
     }
 
@@ -105,15 +136,18 @@ pub fn unregister() -> Result<()> {
         println!("Removed registry entries");
     }
 
-    // Remove browser policy keys
+    // Remove only our "directory" protocol entry from browser policy keys,
+    // leaving entries set by other applications intact.
     for browser_path in [
-        r"Software\Policies\Microsoft\Edge",
-        r"Software\Policies\Google\Chrome",
+        r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
+        r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
     ] {
-        if let Ok(browser_key) =
-            hkcu.open_subkey_with_flags(browser_path, KEY_WRITE)
+        if let Ok(policy_key) =
+            hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE)
         {
-            let _ = browser_key.delete_subkey_all("AutoLaunchProtocolsFromOrigins");
+            if let Some(name) = find_directory_policy_entry(&policy_key) {
+                let _ = policy_key.delete_value(&name);
+            }
         }
     }
 
@@ -165,11 +199,16 @@ pub fn status() -> Result<()> {
     ] {
         match hkcu.open_subkey(browser_path) {
             Ok(key) => {
-                let value: std::result::Result<String, _> = key.get_value("1");
-                if let Ok(v) = value {
-                    println!("{name} auto-launch policy: {v}");
+                if let Some(entry_name) = find_directory_policy_entry(&key) {
+                    let value: std::result::Result<String, _> =
+                        key.get_value(&entry_name);
+                    if let Ok(v) = value {
+                        println!("{name} auto-launch policy: {v}");
+                    } else {
+                        println!("{name} auto-launch policy: entry exists (no value)");
+                    }
                 } else {
-                    println!("{name} auto-launch policy: key exists (no value)");
+                    println!("{name} auto-launch policy: not set");
                 }
             }
             Err(_) => {

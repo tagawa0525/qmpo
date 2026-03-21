@@ -6,10 +6,12 @@
 //! - Linux: `~/.local/share/qmpo/config.toml`
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use directories::BaseDirs;
 use serde::Deserialize;
+
+use crate::log;
 
 /// Top-level configuration.
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
@@ -38,9 +40,18 @@ impl Config {
 
     /// Load configuration from a specific file path.
     /// Returns `None` if the file does not exist or cannot be parsed.
-    fn load_from(path: &PathBuf) -> Option<Self> {
+    fn load_from(path: &Path) -> Option<Self> {
         let content = fs::read_to_string(path).ok()?;
-        Self::parse(&content)
+        match Self::parse(&content) {
+            Some(config) => Some(config),
+            None => {
+                log::error(&format!(
+                    "Failed to parse config file: {}",
+                    path.display()
+                ));
+                None
+            }
+        }
     }
 
     /// Parse a TOML string into a Config.
@@ -130,5 +141,22 @@ allowed_servers = []
     fn test_default_config_allows_nothing() {
         let config = Config::default();
         assert!(!config.security.is_server_allowed("anything"));
+    }
+
+    #[test]
+    fn test_parse_invalid_toml() {
+        let config = Config::parse("[invalid toml ===");
+        assert!(config.is_none());
+    }
+
+    #[test]
+    fn test_parse_wrong_type() {
+        // allowed_servers should be an array, not a string
+        let toml = r#"
+[security]
+allowed_servers = "not-an-array"
+"#;
+        let config = Config::parse(toml);
+        assert!(config.is_none());
     }
 }
