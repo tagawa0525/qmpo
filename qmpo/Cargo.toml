@@ -5,6 +5,9 @@ edition.workspace = true
 license.workspace = true
 description = "Open Directory With Browser - directory:// URI handler"
 
+[features]
+logging = []
+
 [dependencies]
 clap = { version = "4.6.0", default-features = false, features = ["std", "derive", "help", "usage", "error-context"] }
 url = { version = "2.5.8", default-features = false }

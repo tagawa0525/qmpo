@@ -59,15 +59,15 @@
 <h3>qmpo (URI handler)</h3>
 <ul>
   <li>
-    <strong>Log file</strong> — qmpo writes an operational log to the local filesystem
-    (<code>qmpo.log</code>) containing timestamps, received URIs, and parsed paths.
-    This file is stored in your user data directory and is never transmitted.
-    It is automatically rotated at 1 MB.
-  </li>
-  <li>
     <strong>Configuration</strong> — qmpo reads a local <code>config.toml</code> file
     for security settings (UNC server allowlist). This file is read-only and
     managed by the user or system administrator.
+  </li>
+  <li>
+    <strong>Log file (development builds only)</strong> — when built from source with
+    <code>--features logging</code>, qmpo writes an operational log to the local
+    filesystem. Pre-built binaries distributed via GitHub Releases, AUR, and Nix
+    do <strong>not</strong> include this feature; no log file is created.
   </li>
 </ul>
 
