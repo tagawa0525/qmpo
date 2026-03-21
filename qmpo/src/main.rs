@@ -7,6 +7,7 @@
 #[cfg(target_os = "windows")]
 mod config;
 mod error;
+#[macro_use]
 mod log;
 mod uri;
 
@@ -32,22 +33,22 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    log::info(&format!("Received URI: {}", args.uri));
+    log_info!("Received URI: {}", args.uri);
 
     if let Err(e) = run(&args.uri) {
-        log::error(&format!("Failed: {}", e));
+        log_error!("Failed: {}", e);
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }
 
-    log::info("Completed successfully");
+    log_info!("Completed successfully");
 }
 
 fn run(uri_str: &str) -> Result<(), Box<dyn std::error::Error>> {
     let uri = DirectoryUri::parse(uri_str)?;
     let path = uri.path();
 
-    log::info(&format!("Parsed path: {}", path.display()));
+    log_info!("Parsed path: {}", path.display());
 
     // Block UNC paths targeting non-private servers to prevent NTLM hash leaks.
     // path.exists() and canonicalize() trigger SMB connections that send NTLM
@@ -71,13 +72,13 @@ fn run(uri_str: &str) -> Result<(), Box<dyn std::error::Error>> {
     // to the original path as-is.
     let canonical_path = match path.canonicalize() {
         Ok(p) => p,
-        Err(e) => {
-            log::info(&format!("canonicalize failed ({}), using original path", e));
+        Err(_e) => {
+            log_info!("canonicalize failed ({}), using original path", _e);
             path.to_path_buf()
         }
     };
 
-    log::info(&format!("Opening: {}", canonical_path.display()));
+    log_info!("Opening: {}", canonical_path.display());
 
     // Open in file manager (with file selected if path is a file)
     open_in_file_manager(&canonical_path)?;

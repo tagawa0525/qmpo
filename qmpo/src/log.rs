@@ -1,18 +1,56 @@
 //! Simple file-based logging for qmpo.
 //!
-//! Writes logs to `~/.local/share/qmpo/qmpo.log` (Linux),
+//! Disabled by default. Enable with `cargo build --features logging`.
+//!
+//! When enabled, writes logs to `~/.local/share/qmpo/qmpo.log` (Linux),
 //! `~/Library/Application Support/qmpo/qmpo.log` (macOS),
 //! or `%LOCALAPPDATA%\qmpo\qmpo.log` (Windows).
+//!
+//! Use the `log_info!` and `log_error!` macros instead of calling functions
+//! directly. When the `logging` feature is disabled, the macros expand to
+//! nothing and `format!()` arguments are never evaluated.
 
+/// Log an info message. No-op unless built with the `logging` feature.
+#[cfg(not(feature = "logging"))]
+macro_rules! log_info {
+    ($($arg:tt)*) => {};
+}
+
+/// Log an error message. No-op unless built with the `logging` feature.
+#[cfg(not(feature = "logging"))]
+macro_rules! log_error {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(feature = "logging")]
+macro_rules! log_info {
+    ($($arg:tt)*) => {
+        $crate::log::_write("INFO", &format!($($arg)*))
+    };
+}
+
+#[cfg(feature = "logging")]
+macro_rules! log_error {
+    ($($arg:tt)*) => {
+        $crate::log::_write("ERROR", &format!($($arg)*))
+    };
+}
+
+#[cfg(feature = "logging")]
 use std::fs::{self, OpenOptions};
+#[cfg(feature = "logging")]
 use std::io::Write;
+#[cfg(feature = "logging")]
 use std::path::PathBuf;
 
+#[cfg(feature = "logging")]
 use directories::BaseDirs;
 
+#[cfg(feature = "logging")]
 const MAX_LOG_SIZE: u64 = 1024 * 1024; // 1MB
 
 /// Get the log file path.
+#[cfg(feature = "logging")]
 fn log_path() -> Option<PathBuf> {
     Some(
         BaseDirs::new()?
@@ -23,7 +61,9 @@ fn log_path() -> Option<PathBuf> {
 }
 
 /// Write a log entry. Silently fails if logging is not possible.
-pub fn log(level: &str, message: &str) {
+/// Use `log_info!` / `log_error!` macros instead of calling this directly.
+#[cfg(feature = "logging")]
+pub fn _write(level: &str, message: &str) {
     let Some(path) = log_path() else {
         return;
     };
@@ -48,6 +88,7 @@ pub fn log(level: &str, message: &str) {
 }
 
 /// Simple timestamp without external chrono dependency.
+#[cfg(feature = "logging")]
 fn chrono_lite_timestamp() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -101,14 +142,4 @@ fn chrono_lite_timestamp() -> String {
         "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
         year, month, day, hours, minutes, seconds
     )
-}
-
-/// Log an info message.
-pub fn info(message: &str) {
-    log("INFO", message);
-}
-
-/// Log an error message.
-pub fn error(message: &str) {
-    log("ERROR", message);
 }
