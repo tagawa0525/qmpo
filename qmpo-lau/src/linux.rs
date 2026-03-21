@@ -23,8 +23,8 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
         ));
     }
 
-    // Install qmpo to ~/.local/bin/
-    let local_bin = home_dir.join(".local/bin");
+    // Install qmpo to /usr/local/bin/
+    let local_bin = PathBuf::from("/usr/local/bin");
     fs::create_dir_all(&local_bin)?;
 
     let installed_path = local_bin.join("qmpo");
@@ -96,7 +96,7 @@ pub fn unregister() -> Result<()> {
         .status();
 
     // Remove installed binary
-    let installed_path = home_dir.join(".local/bin/qmpo");
+    let installed_path = PathBuf::from("/usr/local/bin/qmpo");
     if installed_path.exists() {
         fs::remove_file(&installed_path)?;
         println!("Removed: {}", installed_path.display());
@@ -111,7 +111,7 @@ pub fn status() -> Result<()> {
     let home_dir = base_dirs.home_dir();
 
     // Check installed binary
-    let installed_path = home_dir.join(".local/bin/qmpo");
+    let installed_path = PathBuf::from("/usr/local/bin/qmpo");
     if installed_path.exists() {
         println!("qmpo binary: {} (installed)", installed_path.display());
     } else {

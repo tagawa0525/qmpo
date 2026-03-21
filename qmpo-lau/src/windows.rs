@@ -3,7 +3,6 @@
 use std::fs;
 use std::path::PathBuf;
 
-use directories::BaseDirs;
 use winreg::RegKey;
 use winreg::enums::*;
 
@@ -37,8 +36,6 @@ fn next_policy_slot(key: &RegKey) -> String {
 }
 
 pub fn register(path: Option<PathBuf>) -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-
     let qmpo_path = path.map_or_else(find_qmpo_executable, Ok)?;
 
     if !qmpo_path.exists() {
@@ -47,8 +44,11 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
         ));
     }
 
-    // Install qmpo to %LOCALAPPDATA%\qmpo\
-    let install_dir = base_dirs.data_local_dir().join("qmpo");
+    // Install qmpo to %PROGRAMFILES%\qmpo\
+    let install_dir = PathBuf::from(
+        std::env::var("PROGRAMFILES").map_err(|_| LauError::NoUserDirectories)?,
+    )
+    .join("qmpo");
     fs::create_dir_all(&install_dir)?;
 
     let installed_path = install_dir.join("qmpo.exe");
@@ -126,8 +126,6 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 }
 
 pub fn unregister() -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-
     // Remove registry keys
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok(classes) = hkcu.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
@@ -149,7 +147,10 @@ pub fn unregister() -> Result<()> {
     }
 
     // Remove installed binary
-    let install_dir = base_dirs.data_local_dir().join("qmpo");
+    let install_dir = PathBuf::from(
+        std::env::var("PROGRAMFILES").map_err(|_| LauError::NoUserDirectories)?,
+    )
+    .join("qmpo");
     if install_dir.exists() {
         let _ = fs::remove_dir_all(&install_dir);
         println!("Removed: {}", install_dir.display());
@@ -160,10 +161,12 @@ pub fn unregister() -> Result<()> {
 }
 
 pub fn status() -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-
     // Check installed binary
-    let installed_path = base_dirs.data_local_dir().join("qmpo").join("qmpo.exe");
+    let installed_path = PathBuf::from(
+        std::env::var("PROGRAMFILES").map_err(|_| LauError::NoUserDirectories)?,
+    )
+    .join("qmpo")
+    .join("qmpo.exe");
     if installed_path.exists() {
         println!("qmpo binary: {} (installed)", installed_path.display());
     } else {

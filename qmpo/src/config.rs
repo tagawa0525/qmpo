@@ -1,9 +1,18 @@
 //! Configuration file handling for qmpo.
 //!
-//! Reads `config.toml` from the platform-specific data directory:
+//! Loads `config.toml` from two locations and merges them (user overrides machine):
+//!
+//! Machine-wide (organization):
+//! - Windows: `%PROGRAMDATA%\qmpo\config.toml`
+//! - macOS: `/Library/Application Support/qmpo/config.toml`
+//! - Linux: `/etc/qmpo/config.toml`
+//!
+//! User-specific:
 //! - Windows: `%LOCALAPPDATA%\qmpo\config.toml`
 //! - macOS: `~/Library/Application Support/qmpo/config.toml`
-//! - Linux: `~/.local/share/qmpo/config.toml`
+//! - Linux: `~/.config/qmpo/config.toml`
+//!
+//! The environment variable `QMPO_CONFIG_DIR` overrides both paths when set.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -29,13 +38,42 @@ pub struct SecurityConfig {
     pub allowed_servers: Vec<String>,
 }
 
+/// Intermediate struct for partial deserialization (supports merge).
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct PartialConfig {
+    security: Option<PartialSecurityConfig>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct PartialSecurityConfig {
+    allowed_servers: Option<Vec<String>>,
+}
+
 impl Config {
-    /// Load configuration from the default config file path.
-    /// Returns `Config::default()` if the file does not exist or cannot be parsed.
+    /// Load configuration by merging machine-wide and user configs.
+    /// `QMPO_CONFIG_DIR` overrides both when set.
+    /// Returns `Config::default()` if no config files exist or cannot be parsed.
     pub fn load() -> Self {
-        Self::config_path()
+        // QMPO_CONFIG_DIR override takes highest priority
+        if let Ok(dir) = std::env::var("QMPO_CONFIG_DIR") {
+            let path = PathBuf::from(dir).join("config.toml");
+            return Self::load_from(&path).unwrap_or_default();
+        }
+
+        // Load machine config as base
+        let machine = machine_config_path()
             .and_then(|p| Self::load_from(&p))
-            .unwrap_or_default()
+            .unwrap_or_default();
+
+        // Load user config as overlay (using partial deserialization)
+        let user_partial = user_config_path().and_then(|p| Self::load_partial_from(&p));
+
+        match user_partial {
+            Some(partial) => machine.merge(partial),
+            None => machine,
+        }
     }
 
     /// Load configuration from a specific file path.
@@ -51,15 +89,69 @@ impl Config {
         }
     }
 
+    /// Load partial configuration for merging.
+    fn load_partial_from(path: &Path) -> Option<PartialConfig> {
+        let content = fs::read_to_string(path).ok()?;
+        match toml::from_str(&content) {
+            Ok(partial) => Some(partial),
+            Err(_) => {
+                log::error(&format!("Failed to parse config file: {}", path.display()));
+                None
+            }
+        }
+    }
+
     /// Parse a TOML string into a Config.
     fn parse(toml_str: &str) -> Option<Self> {
         toml::from_str(toml_str).ok()
     }
 
-    /// Returns the platform-specific path to `config.toml`.
-    fn config_path() -> Option<PathBuf> {
+    /// Merge user partial config over self (machine config).
+    /// Only fields explicitly set in the user config override the machine values.
+    fn merge(mut self, user: PartialConfig) -> Self {
+        if let Some(security) = user.security
+            && let Some(allowed_servers) = security.allowed_servers
+        {
+            self.security.allowed_servers = allowed_servers;
+        }
+        self
+    }
+}
+
+/// Returns the machine-wide config path.
+fn machine_config_path() -> Option<PathBuf> {
+    #[cfg(target_os = "windows")]
+    {
+        std::env::var("PROGRAMDATA")
+            .ok()
+            .map(|pd| PathBuf::from(pd).join("qmpo").join("config.toml"))
+    }
+    #[cfg(target_os = "macos")]
+    {
+        Some(PathBuf::from("/Library/Application Support/qmpo/config.toml"))
+    }
+    #[cfg(target_os = "linux")]
+    {
+        Some(PathBuf::from("/etc/qmpo/config.toml"))
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        None
+    }
+}
+
+/// Returns the user-specific config path.
+fn user_config_path() -> Option<PathBuf> {
+    let base_dirs = BaseDirs::new()?;
+
+    #[cfg(target_os = "linux")]
+    {
+        Some(base_dirs.config_dir().join("qmpo").join("config.toml"))
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
         Some(
-            BaseDirs::new()?
+            base_dirs
                 .data_local_dir()
                 .join("qmpo")
                 .join("config.toml"),
@@ -160,5 +252,84 @@ allowed_servers = "not-an-array"
 "#;
         let config = Config::parse(toml);
         assert!(config.is_none());
+    }
+
+    #[test]
+    fn test_merge_user_overrides_machine() {
+        let machine = Config {
+            security: SecurityConfig {
+                allowed_servers: vec!["machine-server.com".to_string()],
+            },
+        };
+        let user = PartialConfig {
+            security: Some(PartialSecurityConfig {
+                allowed_servers: Some(vec!["user-server.com".to_string()]),
+            }),
+        };
+        let merged = machine.merge(user);
+        assert_eq!(
+            merged.security.allowed_servers,
+            vec!["user-server.com"]
+        );
+    }
+
+    #[test]
+    fn test_merge_no_user_security_keeps_machine() {
+        let machine = Config {
+            security: SecurityConfig {
+                allowed_servers: vec!["machine-server.com".to_string()],
+            },
+        };
+        let user = PartialConfig { security: None };
+        let merged = machine.merge(user);
+        assert_eq!(
+            merged.security.allowed_servers,
+            vec!["machine-server.com"]
+        );
+    }
+
+    #[test]
+    fn test_merge_user_empty_servers_clears_machine() {
+        let machine = Config {
+            security: SecurityConfig {
+                allowed_servers: vec!["machine-server.com".to_string()],
+            },
+        };
+        let user = PartialConfig {
+            security: Some(PartialSecurityConfig {
+                allowed_servers: Some(vec![]),
+            }),
+        };
+        let merged = machine.merge(user);
+        assert!(merged.security.allowed_servers.is_empty());
+    }
+
+    #[test]
+    fn test_merge_user_no_allowed_servers_keeps_machine() {
+        let machine = Config {
+            security: SecurityConfig {
+                allowed_servers: vec!["machine-server.com".to_string()],
+            },
+        };
+        let user = PartialConfig {
+            security: Some(PartialSecurityConfig {
+                allowed_servers: None,
+            }),
+        };
+        let merged = machine.merge(user);
+        assert_eq!(
+            merged.security.allowed_servers,
+            vec!["machine-server.com"]
+        );
+    }
+
+    #[test]
+    fn test_machine_config_path_is_some() {
+        assert!(machine_config_path().is_some());
+    }
+
+    #[test]
+    fn test_user_config_path_is_some() {
+        assert!(user_config_path().is_some());
     }
 }

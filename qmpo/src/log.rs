@@ -2,19 +2,24 @@
 //!
 //! Writes logs to `~/.local/share/qmpo/qmpo.log` (Linux),
 //! `~/Library/Application Support/qmpo/qmpo.log` (macOS),
-//! or `%APPDATA%\qmpo\qmpo.log` (Windows).
+//! or `%LOCALAPPDATA%\qmpo\qmpo.log` (Windows).
 
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 
-use directories::ProjectDirs;
+use directories::BaseDirs;
 
 const MAX_LOG_SIZE: u64 = 1024 * 1024; // 1MB
 
 /// Get the log file path.
 fn log_path() -> Option<PathBuf> {
-    ProjectDirs::from("", "", "qmpo").map(|dirs| dirs.data_dir().join("qmpo.log"))
+    Some(
+        BaseDirs::new()?
+            .data_local_dir()
+            .join("qmpo")
+            .join("qmpo.log"),
+    )
 }
 
 /// Write a log entry. Silently fails if logging is not possible.

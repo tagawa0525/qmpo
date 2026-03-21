@@ -4,7 +4,6 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
-use directories::BaseDirs;
 use plist::Value;
 
 use crate::{LauError, Result, find_qmpo_executable};
@@ -14,9 +13,6 @@ const BUNDLE_ID: &str = "com.github.qmpo";
 const LSREGISTER_PATH: &str = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
 
 pub fn register(path: Option<PathBuf>) -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-    let home_dir = base_dirs.home_dir();
-
     let qmpo_path = path.map_or_else(find_qmpo_executable, Ok)?;
 
     if !qmpo_path.exists() {
@@ -25,8 +21,8 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
         ));
     }
 
-    // Create app bundle at ~/Applications/qmpo.app
-    let applications_dir = home_dir.join("Applications");
+    // Create app bundle at /Applications/qmpo.app
+    let applications_dir = PathBuf::from("/Applications");
     fs::create_dir_all(&applications_dir)?;
 
     let app_bundle = applications_dir.join(APP_NAME);
@@ -70,8 +66,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 }
 
 pub fn unregister() -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-    let app_bundle = base_dirs.home_dir().join("Applications").join(APP_NAME);
+    let app_bundle = PathBuf::from("/Applications").join(APP_NAME);
 
     if app_bundle.exists() {
         // Unregister from Launch Services (ignore errors)
@@ -90,9 +85,7 @@ pub fn unregister() -> Result<()> {
 }
 
 pub fn status() -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-
-    let app_bundle = base_dirs.home_dir().join("Applications").join(APP_NAME);
+    let app_bundle = PathBuf::from("/Applications").join(APP_NAME);
     let executable = app_bundle.join("Contents/MacOS/qmpo");
 
     if executable.exists() {

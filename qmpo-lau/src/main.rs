@@ -80,6 +80,22 @@ pub fn find_qmpo_executable() -> Result<PathBuf> {
     // Current directory
     candidates.push(current_dir.join(QMPO_EXECUTABLE_NAME));
 
+    // Machine-wide install location
+    #[cfg(target_os = "windows")]
+    if let Ok(pf) = std::env::var("PROGRAMFILES") {
+        candidates.push(
+            std::path::PathBuf::from(pf)
+                .join("qmpo")
+                .join(QMPO_EXECUTABLE_NAME),
+        );
+    }
+    #[cfg(target_os = "macos")]
+    candidates.push(std::path::PathBuf::from(
+        "/Applications/qmpo.app/Contents/MacOS/qmpo",
+    ));
+    #[cfg(target_os = "linux")]
+    candidates.push(std::path::PathBuf::from("/usr/local/bin").join(QMPO_EXECUTABLE_NAME));
+
     // target/release and target/debug
     candidates.push(
         current_dir

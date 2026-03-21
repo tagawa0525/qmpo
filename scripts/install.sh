@@ -15,7 +15,7 @@ set -e
 
 REPO_OWNER="tagawa0525"
 REPO_NAME="qmpo"
-INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
+INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 VERSION="${VERSION:-latest}"
 SILENT=false
 
@@ -113,6 +113,27 @@ download_file() {
     fi
 }
 
+need_sudo() {
+    # Check if we need sudo for the install directory
+    if [ -w "$INSTALL_DIR" ] 2>/dev/null || [ -w "$(dirname "$INSTALL_DIR")" ] 2>/dev/null; then
+        return 1
+    fi
+    return 0
+}
+
+run_privileged() {
+    if need_sudo; then
+        if command -v sudo &> /dev/null; then
+            sudo "$@"
+        else
+            log ERROR "Cannot write to $INSTALL_DIR and sudo is not available. Run as root or use --install-dir."
+            exit 1
+        fi
+    else
+        "$@"
+    fi
+}
+
 install_qmpo() {
     log INFO "Starting qmpo installation..."
 
@@ -129,7 +150,7 @@ install_qmpo() {
     log INFO "Installing version: $VERSION"
 
     # Create install directory
-    mkdir -p "$INSTALL_DIR"
+    run_privileged mkdir -p "$INSTALL_DIR"
     log INFO "Install directory: $INSTALL_DIR"
 
     # Download
@@ -141,11 +162,11 @@ install_qmpo() {
 
     # Extract
     log INFO "Extracting..."
-    tar -xzf "$tmp_file" -C "$INSTALL_DIR"
+    run_privileged tar -xzf "$tmp_file" -C "$INSTALL_DIR"
     rm -f "$tmp_file"
 
     # Make executable
-    chmod +x "$INSTALL_DIR/qmpo" "$INSTALL_DIR/qmpo-lau"
+    run_privileged chmod +x "$INSTALL_DIR/qmpo" "$INSTALL_DIR/qmpo-lau"
 
     # Register URI scheme
     register_uri_scheme
@@ -236,7 +257,7 @@ Usage: $0 [OPTIONS]
 Options:
     --silent          Run in silent mode
     --version VER     Install specific version (e.g., v0.2.0)
-    --install-dir DIR Installation directory (default: ~/.local/bin)
+    --install-dir DIR Installation directory (default: /usr/local/bin)
     --help            Show this help message
 
 Examples:

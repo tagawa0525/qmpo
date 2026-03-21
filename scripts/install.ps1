@@ -11,7 +11,7 @@
     Run in silent mode without prompts
 
 .PARAMETER InstallDir
-    Installation directory (default: $env:LOCALAPPDATA\qmpo)
+    Installation directory (default: $env:PROGRAMFILES\qmpo)
 
 .PARAMETER Version
     Specific version to install (default: latest)
@@ -29,12 +29,18 @@
 
 param(
     [switch]$Silent,
-    [string]$InstallDir = "$env:LOCALAPPDATA\qmpo",
+    [string]$InstallDir = "$env:PROGRAMFILES\qmpo",
     [string]$Version = "latest"
 )
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+
+# Require administrator privileges for machine-wide installation
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "[ERROR] This installer requires administrator privileges. Re-run as Administrator." -ForegroundColor Red
+    exit 1
+}
 
 $RepoOwner = "tagawa0525"
 $RepoName = "qmpo"
@@ -106,11 +112,11 @@ function Install-Qmpo {
     Write-Log "Registering directory:// URI scheme..."
     Register-UriScheme
 
-    # Add to PATH (user level)
-    $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    # Add to PATH (machine level)
+    $currentPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
     if ($currentPath -notlike "*$InstallDir*") {
-        [Environment]::SetEnvironmentVariable("Path", "$currentPath;$InstallDir", "User")
-        Write-Log "Added $InstallDir to user PATH"
+        [Environment]::SetEnvironmentVariable("Path", "$currentPath;$InstallDir", "Machine")
+        Write-Log "Added $InstallDir to system PATH"
     }
 
     Write-Log "Installation completed successfully!"
