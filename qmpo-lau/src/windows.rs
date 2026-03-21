@@ -1,6 +1,7 @@
 #![cfg(target_os = "windows")]
 
 use std::fs;
+use std::io;
 use std::path::PathBuf;
 
 use winreg::RegKey;
@@ -9,6 +10,21 @@ use winreg::enums::*;
 use crate::{LauError, Result, check_install_permissions, find_qmpo_executable};
 
 const PROTOCOL_NAME: &str = "directory";
+const ADMIN_HINT: &str = "run as Administrator, or use the install script (scripts\\install.ps1)";
+
+/// Convert a winreg `io::Error` into the appropriate `LauError`.
+/// Returns `PermissionDenied` with an admin hint for access-denied errors,
+/// and a generic `Registry` error for everything else.
+fn registry_error(e: io::Error, operation: &str) -> LauError {
+    if e.kind() == io::ErrorKind::PermissionDenied {
+        LauError::PermissionDenied {
+            operation: operation.to_string(),
+            hint: ADMIN_HINT.to_string(),
+        }
+    } else {
+        LauError::Registry(e.to_string())
+    }
+}
 
 /// Returns the machine-wide install directory (`%PROGRAMFILES%\qmpo`).
 fn install_dir() -> Result<PathBuf> {
@@ -78,29 +94,29 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     let classes = hklm
         .open_subkey_with_flags("Software\\Classes", KEY_WRITE)
-        .map_err(|e| LauError::Registry(e.to_string()))?;
+        .map_err(|e| registry_error(e, "opening HKLM\\Software\\Classes"))?;
 
     // Create directory protocol key
     let (protocol_key, _) = classes
         .create_subkey(PROTOCOL_NAME)
-        .map_err(|e| LauError::Registry(e.to_string()))?;
+        .map_err(|e| registry_error(e, "creating protocol key in HKLM"))?;
     protocol_key
         .set_value("", &"URL:Directory Protocol")
-        .map_err(|e| LauError::Registry(e.to_string()))?;
+        .map_err(|e| registry_error(e, "writing protocol description to HKLM"))?;
     protocol_key
         .set_value("URL Protocol", &"")
-        .map_err(|e| LauError::Registry(e.to_string()))?;
+        .map_err(|e| registry_error(e, "writing URL Protocol marker to HKLM"))?;
 
     // Create shell\open\command key
     let (shell_key, _) = protocol_key
         .create_subkey("shell")
-        .map_err(|e| LauError::Registry(e.to_string()))?;
+        .map_err(|e| registry_error(e, "creating shell key in HKLM"))?;
     let (open_key, _) = shell_key
         .create_subkey("open")
-        .map_err(|e| LauError::Registry(e.to_string()))?;
+        .map_err(|e| registry_error(e, "creating open key in HKLM"))?;
     let (command_key, _) = open_key
         .create_subkey("command")
-        .map_err(|e| LauError::Registry(e.to_string()))?;
+        .map_err(|e| registry_error(e, "creating command key in HKLM"))?;
 
     // Validate path doesn't contain characters that could break the command
     let path_str = installed_path
@@ -113,7 +129,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
     let command = format!("\"{path_str}\" \"%1\"");
     command_key
         .set_value("", &command)
-        .map_err(|e| LauError::Registry(e.to_string()))?;
+        .map_err(|e| registry_error(e, "writing command to HKLM"))?;
 
     // Set browser policies in HKLM to suppress protocol launch confirmation dialog.
     // HKLM policies are treated as managed/enforced by Chrome and Edge, meaning they
@@ -123,7 +139,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
     for browser_path in BROWSER_POLICY_PATHS {
         let (policy_key, _) = hklm
             .create_subkey(browser_path)
-            .map_err(|e| LauError::Registry(e.to_string()))?;
+            .map_err(|e| registry_error(e, &format!("creating HKLM\\{browser_path}")))?;
 
         // Find a free slot or reuse an existing "directory" entry to avoid
         // overwriting values set by other applications.
@@ -132,7 +148,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 
         policy_key
             .set_value(&value_name, &policy_value)
-            .map_err(|e| LauError::Registry(e.to_string()))?;
+            .map_err(|e| registry_error(e, &format!("writing policy to HKLM\\{browser_path}")))?;
     }
 
     println!("Registered qmpo as handler for directory:// URIs");
@@ -143,18 +159,41 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 pub fn unregister() -> Result<()> {
     // Remove HKLM registry keys (current location)
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    if let Ok(classes) = hklm.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
-        let _ = classes.delete_subkey_all(PROTOCOL_NAME);
-        println!("Removed HKLM registry entries");
+    match hklm.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
+        Ok(classes) => match classes.delete_subkey_all(PROTOCOL_NAME) {
+            Ok(()) => println!("Removed HKLM registry entries"),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+            Err(e) if e.kind() == io::ErrorKind::PermissionDenied => {
+                return Err(registry_error(e, "removing HKLM registry entries"));
+            }
+            Err(e) => eprintln!("Warning: failed to remove HKLM registry entries: {e}"),
+        },
+        Err(e) if e.kind() == io::ErrorKind::PermissionDenied => {
+            return Err(registry_error(e, "opening HKLM\\Software\\Classes"));
+        }
+        Err(_) => {}
     }
 
     // Remove only our "directory" protocol entry from HKLM browser policy keys,
     // leaving entries set by other applications intact.
     for browser_path in BROWSER_POLICY_PATHS {
-        if let Ok(policy_key) = hklm.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE) {
-            if let Some(name) = find_directory_policy_entry(&policy_key) {
-                let _ = policy_key.delete_value(&name);
+        match hklm.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE) {
+            Ok(policy_key) => {
+                if let Some(name) = find_directory_policy_entry(&policy_key) {
+                    if let Err(e) = policy_key.delete_value(&name) {
+                        if e.kind() == io::ErrorKind::PermissionDenied {
+                            return Err(registry_error(
+                                e,
+                                &format!("removing policy from HKLM\\{browser_path}"),
+                            ));
+                        }
+                    }
+                }
             }
+            Err(e) if e.kind() == io::ErrorKind::PermissionDenied => {
+                return Err(registry_error(e, &format!("opening HKLM\\{browser_path}")));
+            }
+            Err(_) => {}
         }
     }
 
