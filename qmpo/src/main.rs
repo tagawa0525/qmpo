@@ -213,8 +213,10 @@ fn validate_unc_server_with_config(
     let addrs: Vec<_> = match (server, 445u16).to_socket_addrs() {
         Ok(iter) => iter.collect(),
         Err(_) => {
-            // DNS resolution failed — no SMB connection will happen, safe to proceed.
-            // path.exists() will return false and the caller will report the error.
+            // DNS resolution failed. Note: Windows fallback name resolution
+            // (LLMNR/NetBIOS) could still trigger an SMB connection, but blocking
+            // here would break legitimate intranet short hostnames. Use the
+            // allowed_servers whitelist in config.toml for such servers.
             return Ok(());
         }
     };
