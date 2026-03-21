@@ -173,22 +173,38 @@ pub fn status() -> Result<()> {
         println!("qmpo binary: not installed");
     }
 
-    // Check registry
+    // Check registry — protocol handler
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let registry_path = format!("Software\\Classes\\{PROTOCOL_NAME}\\shell\\open\\command");
+    let protocol_path = format!("Software\\Classes\\{PROTOCOL_NAME}");
 
-    match hkcu.open_subkey(&registry_path) {
-        Ok(key) => {
-            let command: std::result::Result<String, _> = key.get_value("");
-            if let Ok(cmd) = command {
-                println!("Registry: registered");
-                println!("Command: {cmd}");
-            } else {
-                println!("Registry: registered (no command)");
+    match hkcu.open_subkey(&protocol_path) {
+        Ok(protocol_key) => {
+            let description: std::result::Result<String, _> = protocol_key.get_value("");
+            println!(
+                "Protocol key: {}",
+                description.as_deref().unwrap_or("(no description)")
+            );
+
+            let has_url_protocol = protocol_key.get_value::<String, _>("URL Protocol").is_ok();
+            println!("URL Protocol marker: {}", if has_url_protocol { "set" } else { "missing" });
+
+            let command_path = format!("{protocol_path}\\shell\\open\\command");
+            match hkcu.open_subkey(&command_path) {
+                Ok(cmd_key) => {
+                    let command: std::result::Result<String, _> = cmd_key.get_value("");
+                    if let Ok(cmd) = command {
+                        println!("Command: {cmd}");
+                    } else {
+                        println!("Command: (not set)");
+                    }
+                }
+                Err(_) => {
+                    println!("Command: (not set)");
+                }
             }
         }
         Err(_) => {
-            println!("Registry: not registered");
+            println!("Protocol key: not registered");
         }
     }
 
