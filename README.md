@@ -35,9 +35,10 @@ qmpo consists of three components:
 
 ### Windows (Implementation)
 
-- Registers a protocol handler in the Windows Registry (`HKCU\Software\Classes\directory`)
+- Registers a protocol handler in the Windows Registry (`HKLM\Software\Classes\directory`)
 - Installs the binary to `%PROGRAMFILES%\qmpo\qmpo.exe`
 - Opens directories using `explorer.exe`
+- **Requires Administrator privileges** for registration (`qmpo-lau register` / `unregister`)
 
 ### macOS (Implementation)
 
@@ -69,9 +70,10 @@ Download the latest release from [GitHub Releases](https://github.com/tagawa0525
 
 1. Download `qmpo-windows-x64.zip`
 2. Extract the archive
-3. Run `qmpo-lau.exe` (double-click or run from command prompt)
+3. Run `qmpo-lau.exe` as Administrator (right-click → "Run as administrator")
 
 This will automatically register qmpo as the `directory://` protocol handler.
+Administrator privileges are required because registration writes to `HKLM` and `%PROGRAMFILES%`.
 
 ### Arch Linux
 

@@ -88,9 +88,10 @@
 
   <h3>Windowsでの実装</h3>
   <ul>
-    <li>Windowsレジストリにプロトコルハンドラーを登録（<code>HKCU\Software\Classes\directory</code>）</li>
+    <li>Windowsレジストリにプロトコルハンドラーを登録（<code>HKLM\Software\Classes\directory</code>）</li>
     <li>バイナリを <code>%PROGRAMFILES%\qmpo\qmpo.exe</code> にインストール</li>
     <li><code>explorer.exe</code> でディレクトリを開く</li>
+    <li>登録・解除（<code>qmpo-lau register</code> / <code>unregister</code>）には<strong>管理者権限が必要</strong></li>
   </ul>
 
   <h3>Chrome拡張機能</h3>
