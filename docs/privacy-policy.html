@@ -155,10 +155,10 @@
   <tr>
     <td><code>tabs</code></td>
     <td>
-      Allow the extension to work with browser tabs when converting links.
-      The current implementation triggers the <code>directory://</code>
-      protocol via a hidden iframe in the content script and does not create
-      or close any additional tabs.
+      The current implementation may temporarily open a background tab to
+      trigger the <code>directory://</code> protocol and then automatically
+      close that tab. No page content from these tabs is collected or
+      transmitted.
     </td>
   </tr>
   </tbody>
