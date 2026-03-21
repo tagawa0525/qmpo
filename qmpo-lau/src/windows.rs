@@ -44,6 +44,12 @@ fn next_policy_slot(key: &RegKey) -> String {
     (max + 1).to_string()
 }
 
+/// Browser policy registry paths for AutoLaunchProtocolsFromOrigins.
+const BROWSER_POLICY_PATHS: [&str; 2] = [
+    r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
+    r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
+];
+
 pub fn register(path: Option<PathBuf>) -> Result<()> {
     let qmpo_path = path.map_or_else(find_qmpo_executable, Ok)?;
 
@@ -66,9 +72,11 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
         println!("Installed qmpo to: {}", installed_path.display());
     }
 
-    // Create registry keys
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let classes = hkcu
+    // Register protocol handler in HKLM (machine-wide).
+    // HKLM\Software\Classes is the machine-wide equivalent of per-user
+    // HKCU\Software\Classes. All users on this machine will get the handler.
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let classes = hklm
         .open_subkey_with_flags("Software\\Classes", KEY_WRITE)
         .map_err(|e| LauError::Registry(e.to_string()))?;
 
@@ -107,16 +115,13 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
         .set_value("", &command)
         .map_err(|e| LauError::Registry(e.to_string()))?;
 
-    // Set browser policies to suppress protocol launch confirmation dialog.
-    // AutoLaunchProtocolsFromOrigins allows the directory:// protocol to launch
-    // without the "{server} wants to open this application" prompt.
+    // Set browser policies in HKLM to suppress protocol launch confirmation dialog.
+    // HKLM policies are treated as managed/enforced by Chrome and Edge, meaning they
+    // cannot be overridden by user-level settings.
     let policy_value = r#"{"protocol":"directory","allowed_origins":["*"]}"#;
 
-    for browser_path in [
-        r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
-        r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
-    ] {
-        let (policy_key, _) = hkcu
+    for browser_path in BROWSER_POLICY_PATHS {
+        let (policy_key, _) = hklm
             .create_subkey(browser_path)
             .map_err(|e| LauError::Registry(e.to_string()))?;
 
@@ -136,19 +141,32 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 
 #[allow(clippy::collapsible_if)]
 pub fn unregister() -> Result<()> {
-    // Remove registry keys
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    if let Ok(classes) = hkcu.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
+    // Remove HKLM registry keys (current location)
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    if let Ok(classes) = hklm.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
         let _ = classes.delete_subkey_all(PROTOCOL_NAME);
-        println!("Removed registry entries");
+        println!("Removed HKLM registry entries");
     }
 
-    // Remove only our "directory" protocol entry from browser policy keys,
+    // Remove only our "directory" protocol entry from HKLM browser policy keys,
     // leaving entries set by other applications intact.
-    for browser_path in [
-        r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
-        r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
-    ] {
+    for browser_path in BROWSER_POLICY_PATHS {
+        if let Ok(policy_key) = hklm.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE) {
+            if let Some(name) = find_directory_policy_entry(&policy_key) {
+                let _ = policy_key.delete_value(&name);
+            }
+        }
+    }
+
+    // Clean up legacy HKCU entries from previous versions
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    if let Ok(classes) = hkcu.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
+        if classes.open_subkey(PROTOCOL_NAME).is_ok() {
+            let _ = classes.delete_subkey_all(PROTOCOL_NAME);
+            println!("Removed legacy HKCU registry entries");
+        }
+    }
+    for browser_path in BROWSER_POLICY_PATHS {
         if let Ok(policy_key) = hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE) {
             if let Some(name) = find_directory_policy_entry(&policy_key) {
                 let _ = policy_key.delete_value(&name);
@@ -194,15 +212,15 @@ pub fn status() -> Result<()> {
         }
     }
 
-    // Check registry — protocol handler
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    // Check registry — protocol handler (HKLM)
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     let protocol_path = format!("Software\\Classes\\{PROTOCOL_NAME}");
 
-    match hkcu.open_subkey(&protocol_path) {
+    match hklm.open_subkey(&protocol_path) {
         Ok(protocol_key) => {
             let description: std::result::Result<String, _> = protocol_key.get_value("");
             println!(
-                "Protocol key: {}",
+                "Protocol key (HKLM): {}",
                 description.as_deref().unwrap_or("(no description)")
             );
 
@@ -213,7 +231,7 @@ pub fn status() -> Result<()> {
             );
 
             let command_path = format!("{protocol_path}\\shell\\open\\command");
-            match hkcu.open_subkey(&command_path) {
+            match hklm.open_subkey(&command_path) {
                 Ok(cmd_key) => {
                     let command: std::result::Result<String, _> = cmd_key.get_value("");
                     if let Ok(cmd) = command {
@@ -228,11 +246,22 @@ pub fn status() -> Result<()> {
             }
         }
         Err(_) => {
-            println!("Protocol key: not registered");
+            // Fall back to checking HKCU for legacy registrations
+            let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+            match hkcu.open_subkey(&protocol_path) {
+                Ok(_) => {
+                    println!(
+                        "Protocol key: registered in HKCU (legacy — run `qmpo-lau register` to migrate to HKLM)"
+                    );
+                }
+                Err(_) => {
+                    println!("Protocol key: not registered");
+                }
+            }
         }
     }
 
-    // Check browser policies
+    // Check browser policies (HKLM)
     for (name, browser_path) in [
         (
             "Edge",
@@ -243,14 +272,14 @@ pub fn status() -> Result<()> {
             r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
         ),
     ] {
-        match hkcu.open_subkey(browser_path) {
+        match hklm.open_subkey(browser_path) {
             Ok(key) => {
                 if let Some(entry_name) = find_directory_policy_entry(&key) {
                     let value: std::result::Result<String, _> = key.get_value(&entry_name);
                     if let Ok(v) = value {
-                        println!("{name} auto-launch policy: {v}");
+                        println!("{name} auto-launch policy (HKLM): {v}");
                     } else {
-                        println!("{name} auto-launch policy: entry exists (no value)");
+                        println!("{name} auto-launch policy (HKLM): entry exists (no value)");
                     }
                 } else {
                     println!("{name} auto-launch policy: not set");
