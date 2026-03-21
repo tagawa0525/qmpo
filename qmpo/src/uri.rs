@@ -183,11 +183,12 @@ fn is_windows_drive_letter_without_colon(s: &str) -> bool {
 /// Convert a forward-slash UNC path (e.g., `//server/share/folder`) to
 /// backslash form (`\\server\share\folder`).
 ///
-/// The input must start with `//`. Panics otherwise.
+/// The input must start with `//`. If not, the entire string is treated as
+/// the server-relative portion (i.e. `\\` is still prepended).
 #[cfg(any(target_os = "windows", test))]
 fn convert_forward_slash_unc_to_backslash(s: &str) -> PathBuf {
-    let after_double_slash = s.strip_prefix("//").unwrap();
-    let unc = format!("\\\\{}", after_double_slash.replace('/', "\\"));
+    let server_and_path = s.strip_prefix("//").unwrap_or(s);
+    let unc = format!("\\\\{}", server_and_path.replace('/', "\\"));
     PathBuf::from(unc)
 }
 
