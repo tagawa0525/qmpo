@@ -25,12 +25,12 @@ qmpoに橋渡しし、Local Explorerなどの既存ソリューションより�
 
 [GitHub Releases](https://github.com/tagawa0525/qmpo/releases)からqmpoをダウンロード:
 
-| OS | ダウンロード |
-| --- | --- |
-| Windows | `qmpo-windows-x64.zip` |
-| macOS (Intel) | `qmpo-macos-x64.tar.gz` |
+| OS                    | ダウンロード              |
+| --------------------- | ------------------------- |
+| Windows               | `qmpo-windows-x64.zip`    |
+| macOS (Intel)         | `qmpo-macos-x64.tar.gz`   |
 | macOS (Apple Silicon) | `qmpo-macos-arm64.tar.gz` |
-| Linux | `qmpo-linux-x64.tar.gz` |
+| Linux                 | `qmpo-linux-x64.tar.gz`   |
 
 またはインストールスクリプトを使用:
 
@@ -213,13 +213,13 @@ Webページ内で実行されるスクリプト。主な機能:
 
 ## Local Explorerとの比較
 
-| 機能 | Local Explorer | qmpo + 拡張機能 |
-| --- | --- | --- |
-| プラットフォーム | Windowsのみ | Windows/macOS/Linux |
-| ブラウザ | Chrome/Edge | Chrome/Chromiumベース |
-| 通信方式 | Native Messaging API | カスタムURIスキーム |
-| 動作 | ファイルを直接開く | ファイルを選択した状態でディレクトリを開く |
-| セキュリティ | ファイルを実行可能 | ディレクトリのみ（より安全） |
+| 機能             | Local Explorer       | qmpo + 拡張機能                            |
+| ---------------- | -------------------- | ------------------------------------------ |
+| プラットフォーム | Windowsのみ          | Windows/macOS/Linux                        |
+| ブラウザ         | Chrome/Edge          | Chrome/Chromiumベース                      |
+| 通信方式         | Native Messaging API | カスタムURIスキーム                        |
+| 動作             | ファイルを直接開く   | ファイルを選択した状態でディレクトリを開く |
+| セキュリティ     | ファイルを実行可能   | ディレクトリのみ（より安全）               |
 
 ## 開発
 

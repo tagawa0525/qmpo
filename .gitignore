@@ -9,3 +9,6 @@
 /aur/*.tar.xz
 /aur/*.tar.gz
 /aur/qmpo/
+
+# Chrome extension build artifacts
+/qmpo-extension.zip

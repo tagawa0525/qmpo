@@ -1,0 +1,22 @@
+Browsers block file:// links for security — but you still need them.
+
+qmpo converts file:// links on web pages to the directory:// scheme, opening folders directly in your file manager. Perfect for internal wikis, documentation sites, and shared folder links.
+
+How it works:
+1. The extension detects file:// links on any web page
+2. When clicked, it converts them to directory:// URIs
+3. Your system's file manager opens the folder (with the file selected)
+
+Features:
+- Automatic file:// to directory:// conversion
+- Folder icon (📂) on converted links
+- Domain allowlist/blocklist for fine-grained control
+- Works with Windows Explorer, macOS Finder, and Linux file managers
+- Toggle on/off per site via the popup
+
+Requirements:
+The qmpo URI handler must be installed on your system.
+Download from: https://github.com/tagawa0525/qmpo
+
+Privacy:
+No data is collected or transmitted. All processing happens locally in your browser.
