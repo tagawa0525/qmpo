@@ -36,12 +36,12 @@ qmpoは3つのコンポーネントで構成されています：
 ### Windows（実装）
 
 - Windowsレジストリにプロトコルハンドラーを登録（`HKCU\Software\Classes\directory`）
-- バイナリを `%LOCALAPPDATA%\qmpo\qmpo.exe` にインストール
+- バイナリを `%PROGRAMFILES%\qmpo\qmpo.exe` にインストール
 - `explorer.exe` でディレクトリを開く
 
 ### macOS（実装）
 
-- `~/Applications/qmpo.app` にアプリバンドルを作成
+- `/Applications/qmpo.app` にアプリバンドルを作成
 - `Info.plist` で `directory://` URLスキームを登録
 - `lsregister` でLaunch Servicesに登録
 - `open` コマンドでディレクトリを開く
@@ -49,7 +49,7 @@ qmpoは3つのコンポーネントで構成されています：
 ### Linux（実装）
 
 - `~/.local/share/applications/qmpo.desktop` にデスクトップエントリを作成
-- バイナリを `~/.local/bin/qmpo` にインストール
+- バイナリを `/usr/local/bin/qmpo` にインストール
 - `xdg-mime` でMIMEハンドラーとして登録
 - `xdg-open` でディレクトリを開く
 
@@ -98,7 +98,7 @@ programs.qmpo.enable = true;
 git clone https://github.com/tagawa0525/qmpo.git
 cd qmpo
 cargo build --release
-./target/release/qmpo-lau register
+sudo ./target/release/qmpo-lau register  # 管理者権限が必要
 ```
 
 ### Chrome拡張機能
