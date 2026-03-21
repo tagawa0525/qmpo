@@ -187,7 +187,9 @@ pub fn unregister() -> Result<()> {
                                 &format!("removing policy from HKLM\\{browser_path}"),
                             ));
                         }
-                        eprintln!("Warning: failed to remove policy from HKLM\\{browser_path}: {e}");
+                        eprintln!(
+                            "Warning: failed to remove policy from HKLM\\{browser_path}: {e}"
+                        );
                     }
                 }
             }
