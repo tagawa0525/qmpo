@@ -113,24 +113,19 @@ download_file() {
     fi
 }
 
-need_sudo() {
-    # Check if we need sudo for the install directory
-    if [ -w "$INSTALL_DIR" ] 2>/dev/null || [ -w "$(dirname "$INSTALL_DIR")" ] 2>/dev/null; then
-        return 1
-    fi
-    return 0
+is_writable() {
+    # Returns 0 (true) if the install directory is writable without elevation
+    [ -w "$INSTALL_DIR" ] 2>/dev/null || [ -w "$(dirname "$INSTALL_DIR")" ] 2>/dev/null
 }
 
 run_privileged() {
-    if need_sudo; then
-        if command -v sudo &> /dev/null; then
-            sudo "$@"
-        else
-            log ERROR "Cannot write to $INSTALL_DIR and sudo is not available. Run as root or use --install-dir."
-            exit 1
-        fi
-    else
+    if is_writable; then
         "$@"
+    elif command -v sudo &> /dev/null; then
+        sudo "$@"
+    else
+        log ERROR "Cannot write to $INSTALL_DIR and sudo is not available. Run as root or use --install-dir."
+        exit 1
     fi
 }
 

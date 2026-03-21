@@ -23,6 +23,18 @@ pub enum LauError {
     #[error("path contains invalid characters: {0}")]
     InvalidPath(String),
 
+    /// A required environment variable is not set.
+    #[error("environment variable not set: {0}")]
+    EnvVarNotSet(String),
+
+    /// Operation requires elevated privileges (admin/root).
+    #[error("{operation} requires elevated privileges.\n  \
+             Hint: {hint}")]
+    PermissionDenied {
+        operation: String,
+        hint: String,
+    },
+
     /// IO error during file operations.
     #[error("IO error: {0}")]
     Io(#[from] io::Error),

@@ -10,7 +10,22 @@ use crate::{LauError, Result, find_qmpo_executable};
 
 const APP_NAME: &str = "qmpo.app";
 const BUNDLE_ID: &str = "com.github.qmpo";
+pub const APPLICATIONS_DIR: &str = "/Applications";
 const LSREGISTER_PATH: &str = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
+
+/// Check write access and return a helpful error if insufficient.
+fn check_install_permissions(dir: &std::path::Path) -> Result<()> {
+    match fs::create_dir_all(dir) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+            Err(LauError::PermissionDenied {
+                operation: format!("installing to {}", dir.display()),
+                hint: "run with sudo, or use the install script (scripts/install.sh)".into(),
+            })
+        }
+        Err(e) => Err(LauError::Io(e)),
+    }
+}
 
 pub fn register(path: Option<PathBuf>) -> Result<()> {
     let qmpo_path = path.map_or_else(find_qmpo_executable, Ok)?;
@@ -22,8 +37,8 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
     }
 
     // Create app bundle at /Applications/qmpo.app
-    let applications_dir = PathBuf::from("/Applications");
-    fs::create_dir_all(&applications_dir)?;
+    let applications_dir = PathBuf::from(APPLICATIONS_DIR);
+    check_install_permissions(&applications_dir)?;
 
     let app_bundle = applications_dir.join(APP_NAME);
     let contents_dir = app_bundle.join("Contents");
@@ -66,7 +81,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 }
 
 pub fn unregister() -> Result<()> {
-    let app_bundle = PathBuf::from("/Applications").join(APP_NAME);
+    let app_bundle = PathBuf::from(APPLICATIONS_DIR).join(APP_NAME);
 
     if app_bundle.exists() {
         // Unregister from Launch Services (ignore errors)
@@ -80,12 +95,21 @@ pub fn unregister() -> Result<()> {
         println!("Removed: {}", app_bundle.display());
     }
 
+    // Clean up legacy install location (~/Applications/qmpo.app)
+    if let Some(base_dirs) = directories::BaseDirs::new() {
+        let legacy_bundle = base_dirs.home_dir().join("Applications").join(APP_NAME);
+        if legacy_bundle.exists() {
+            let _ = fs::remove_dir_all(&legacy_bundle);
+            println!("Removed legacy install: {}", legacy_bundle.display());
+        }
+    }
+
     println!("Unregistered qmpo");
     Ok(())
 }
 
 pub fn status() -> Result<()> {
-    let app_bundle = PathBuf::from("/Applications").join(APP_NAME);
+    let app_bundle = PathBuf::from(APPLICATIONS_DIR).join(APP_NAME);
     let executable = app_bundle.join("Contents/MacOS/qmpo");
 
     if executable.exists() {

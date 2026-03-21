@@ -10,6 +10,31 @@ use crate::{LauError, Result, find_qmpo_executable};
 
 const PROTOCOL_NAME: &str = "directory";
 
+/// Returns the machine-wide install directory (`%PROGRAMFILES%\qmpo`).
+fn install_dir() -> Result<PathBuf> {
+    Ok(PathBuf::from(
+        std::env::var("PROGRAMFILES")
+            .map_err(|_| LauError::EnvVarNotSet("PROGRAMFILES".into()))?,
+    )
+    .join("qmpo"))
+}
+
+/// Check write access and return a helpful error if insufficient.
+fn check_install_permissions(dir: &std::path::Path) -> Result<()> {
+    // Try creating the directory; if it fails with PermissionDenied, give guidance.
+    match fs::create_dir_all(dir) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+            Err(LauError::PermissionDenied {
+                operation: format!("installing to {}", dir.display()),
+                hint: "run as Administrator, or use the install script (scripts\\install.ps1)"
+                    .into(),
+            })
+        }
+        Err(e) => Err(LauError::Io(e)),
+    }
+}
+
 /// Find an existing policy value whose JSON contains `"protocol":"directory"`.
 /// Returns the value name (e.g. "1", "2") if found.
 fn find_directory_policy_entry(key: &RegKey) -> Option<String> {
@@ -45,11 +70,8 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
     }
 
     // Install qmpo to %PROGRAMFILES%\qmpo\
-    let install_dir = PathBuf::from(
-        std::env::var("PROGRAMFILES").map_err(|_| LauError::NoUserDirectories)?,
-    )
-    .join("qmpo");
-    fs::create_dir_all(&install_dir)?;
+    let install_dir = install_dir()?;
+    check_install_permissions(&install_dir)?;
 
     let installed_path = install_dir.join("qmpo.exe");
     if qmpo_path != installed_path {
@@ -146,14 +168,21 @@ pub fn unregister() -> Result<()> {
         }
     }
 
-    // Remove installed binary
-    let install_dir = PathBuf::from(
-        std::env::var("PROGRAMFILES").map_err(|_| LauError::NoUserDirectories)?,
-    )
-    .join("qmpo");
+    // Remove installed binary (current location)
+    let install_dir = install_dir()?;
     if install_dir.exists() {
         let _ = fs::remove_dir_all(&install_dir);
         println!("Removed: {}", install_dir.display());
+    }
+
+    // Clean up legacy install location (%LOCALAPPDATA%\qmpo)
+    if let Some(base_dirs) = directories::BaseDirs::new() {
+        let legacy_dir = base_dirs.data_local_dir().join("qmpo");
+        let legacy_exe = legacy_dir.join("qmpo.exe");
+        if legacy_exe.exists() {
+            let _ = fs::remove_dir_all(&legacy_dir);
+            println!("Removed legacy install: {}", legacy_dir.display());
+        }
     }
 
     println!("Unregistered qmpo");
@@ -162,11 +191,7 @@ pub fn unregister() -> Result<()> {
 
 pub fn status() -> Result<()> {
     // Check installed binary
-    let installed_path = PathBuf::from(
-        std::env::var("PROGRAMFILES").map_err(|_| LauError::NoUserDirectories)?,
-    )
-    .join("qmpo")
-    .join("qmpo.exe");
+    let installed_path = install_dir()?.join("qmpo.exe");
     if installed_path.exists() {
         println!("qmpo binary: {} (installed)", installed_path.display());
     } else {
