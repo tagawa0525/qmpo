@@ -231,8 +231,8 @@ fn is_private_ip(ip: IpAddr) -> bool {
         IpAddr::V4(v4) => v4.is_private() || v4.is_loopback() || v4.is_link_local(),
         IpAddr::V6(v6) => {
             v6.is_loopback()
-                || (v6.segments()[0] & 0xfe00) == 0xfc00  // fc00::/7 unique local
-                || (v6.segments()[0] & 0xffc0) == 0xfe80  // fe80::/10 link-local
+                || (v6.segments()[0] & 0xfe00) == 0xfc00 // fc00::/7 unique local
+                || (v6.segments()[0] & 0xffc0) == 0xfe80 // fe80::/10 link-local
         }
     }
 }
@@ -354,7 +354,9 @@ mod unc_tests {
     #[test]
     fn test_validate_unresolvable_server() {
         let cfg = empty_config();
-        assert!(validate_unc_server_with_config("this-host-does-not-exist-qmpo.invalid", &cfg).is_ok());
+        assert!(
+            validate_unc_server_with_config("this-host-does-not-exist-qmpo.invalid", &cfg).is_ok()
+        );
     }
 
     #[test]

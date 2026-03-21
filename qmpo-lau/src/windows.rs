@@ -16,10 +16,10 @@ const PROTOCOL_NAME: &str = "directory";
 fn find_directory_policy_entry(key: &RegKey) -> Option<String> {
     for entry in key.enum_values().flatten() {
         let value_name = entry.0;
-        if let Ok(s) = key.get_value::<String, _>(&value_name) {
-            if s.contains(r#""protocol":"directory""#) {
-                return Some(value_name);
-            }
+        if let Ok(s) = key.get_value::<String, _>(&value_name)
+            && s.contains(r#""protocol":"directory""#)
+        {
+            return Some(value_name);
         }
     }
     None
@@ -101,8 +101,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
     // Set browser policies to suppress protocol launch confirmation dialog.
     // AutoLaunchProtocolsFromOrigins allows the directory:// protocol to launch
     // without the "{server} wants to open this application" prompt.
-    let policy_value =
-        r#"{"protocol":"directory","allowed_origins":["*"]}"#;
+    let policy_value = r#"{"protocol":"directory","allowed_origins":["*"]}"#;
 
     for browser_path in [
         r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
@@ -142,12 +141,10 @@ pub fn unregister() -> Result<()> {
         r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
         r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
     ] {
-        if let Ok(policy_key) =
-            hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE)
+        if let Ok(policy_key) = hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE)
+            && let Some(name) = find_directory_policy_entry(&policy_key)
         {
-            if let Some(name) = find_directory_policy_entry(&policy_key) {
-                let _ = policy_key.delete_value(&name);
-            }
+            let _ = policy_key.delete_value(&name);
         }
     }
 
@@ -186,7 +183,10 @@ pub fn status() -> Result<()> {
             );
 
             let has_url_protocol = protocol_key.get_value::<String, _>("URL Protocol").is_ok();
-            println!("URL Protocol marker: {}", if has_url_protocol { "set" } else { "missing" });
+            println!(
+                "URL Protocol marker: {}",
+                if has_url_protocol { "set" } else { "missing" }
+            );
 
             let command_path = format!("{protocol_path}\\shell\\open\\command");
             match hkcu.open_subkey(&command_path) {
@@ -210,14 +210,19 @@ pub fn status() -> Result<()> {
 
     // Check browser policies
     for (name, browser_path) in [
-        ("Edge", r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins"),
-        ("Chrome", r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins"),
+        (
+            "Edge",
+            r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
+        ),
+        (
+            "Chrome",
+            r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
+        ),
     ] {
         match hkcu.open_subkey(browser_path) {
             Ok(key) => {
                 if let Some(entry_name) = find_directory_policy_entry(&key) {
-                    let value: std::result::Result<String, _> =
-                        key.get_value(&entry_name);
+                    let value: std::result::Result<String, _> = key.get_value(&entry_name);
                     if let Ok(v) = value {
                         println!("{name} auto-launch policy: {v}");
                     } else {

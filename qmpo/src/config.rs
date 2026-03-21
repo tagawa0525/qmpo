@@ -45,10 +45,7 @@ impl Config {
         match Self::parse(&content) {
             Some(config) => Some(config),
             None => {
-                log::error(&format!(
-                    "Failed to parse config file: {}",
-                    path.display()
-                ));
+                log::error(&format!("Failed to parse config file: {}", path.display()));
                 None
             }
         }
@@ -61,7 +58,12 @@ impl Config {
 
     /// Returns the platform-specific path to `config.toml`.
     fn config_path() -> Option<PathBuf> {
-        Some(BaseDirs::new()?.data_local_dir().join("qmpo").join("config.toml"))
+        Some(
+            BaseDirs::new()?
+                .data_local_dir()
+                .join("qmpo")
+                .join("config.toml"),
+        )
     }
 }
 
