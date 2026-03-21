@@ -167,10 +167,16 @@ fn open_in_file_manager(_path: &Path) -> Result<(), Box<dyn std::error::Error>> 
     Err("Unsupported operating system".into())
 }
 
-/// Extract the server name from a UNC path (e.g., `\\server\share` → `server`).
+/// Extract the server name from a UNC path.
+///
+/// Supports both:
+///   - Standard UNC: `\\server\share` → `server`
+///   - Extended UNC: `\\?\UNC\server\share` → `server`
 fn extract_unc_server(path: &Path) -> Option<String> {
     let s = path.to_str()?;
-    let rest = s.strip_prefix("\\\\")?;
+    let rest = s
+        .strip_prefix(r"\\?\UNC\")
+        .or_else(|| s.strip_prefix(r"\\"))?;
     let server = rest.split('\\').next().filter(|s| !s.is_empty())?;
     Some(server.to_string())
 }
@@ -270,6 +276,18 @@ mod unc_tests {
     #[test]
     fn test_extract_unc_server_bare_prefix() {
         let path = PathBuf::from(r"\\");
+        assert_eq!(extract_unc_server(&path), None);
+    }
+
+    #[test]
+    fn test_extract_unc_server_extended_unc() {
+        let path = PathBuf::from(r"\\?\UNC\fileserver\share\folder");
+        assert_eq!(extract_unc_server(&path).as_deref(), Some("fileserver"));
+    }
+
+    #[test]
+    fn test_extract_unc_server_extended_unc_bare() {
+        let path = PathBuf::from(r"\\?\UNC\");
         assert_eq!(extract_unc_server(&path), None);
     }
 
