@@ -22,4 +22,4 @@ qmpo URI ハンドラーのインストールが必要です。
 データの収集・送信は一切行いません。すべての処理はブラウザ内で完結します。
 
 ---
-English: qmpo converts file:// links to directory:// scheme, opening folders in your file manager. Requires the qmpo URI handler (https://github.com/tagawa0525/qmpo).
+English: qmpo converts file:// links to the directory:// scheme, opening folders in your file manager. Requires the qmpo URI handler (https://github.com/tagawa0525/qmpo).
