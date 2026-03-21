@@ -41,7 +41,7 @@ qmpoは3つのコンポーネントで構成されています：
 
 ### macOS（実装）
 
-- `~/Applications/qmpo.app` にアプリバンドルを作成
+- `/Applications/qmpo.app` にアプリバンドルを作成
 - `Info.plist` で `directory://` URLスキームを登録
 - `lsregister` でLaunch Servicesに登録
 - `open` コマンドでディレクトリを開く
@@ -49,7 +49,7 @@ qmpoは3つのコンポーネントで構成されています：
 ### Linux（実装）
 
 - `~/.local/share/applications/qmpo.desktop` にデスクトップエントリを作成
-- バイナリを `~/.local/bin/qmpo` にインストール
+- バイナリを `/usr/local/bin/qmpo` にインストール
 - `xdg-mime` でMIMEハンドラーとして登録
 - `xdg-open` でディレクトリを開く
 

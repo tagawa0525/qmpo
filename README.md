@@ -41,7 +41,7 @@ qmpo consists of three components:
 
 ### macOS (Implementation)
 
-- Creates an app bundle at `~/Applications/qmpo.app`
+- Creates an app bundle at `/Applications/qmpo.app`
 - Registers the `directory://` URL scheme via `Info.plist`
 - Registers with Launch Services using `lsregister`
 - Opens directories using the `open` command
@@ -49,7 +49,7 @@ qmpo consists of three components:
 ### Linux (Implementation)
 
 - Creates a desktop entry at `~/.local/share/applications/qmpo.desktop`
-- Installs the binary to `~/.local/bin/qmpo`
+- Installs the binary to `/usr/local/bin/qmpo`
 - Registers as MIME handler using `xdg-mime`
 - Opens directories using `xdg-open`
 
