@@ -85,7 +85,7 @@ impl Config {
         match Self::parse(&content) {
             Some(config) => Some(config),
             None => {
-                log::error(&format!("Failed to parse config file: {}", path.display()));
+                log_error!("Failed to parse config file: {}", path.display());
                 None
             }
         }
@@ -97,7 +97,7 @@ impl Config {
         match toml::from_str(&content) {
             Ok(partial) => Some(partial),
             Err(_) => {
-                log::error(&format!("Failed to parse config file: {}", path.display()));
+                log_error!("Failed to parse config file: {}", path.display());
                 None
             }
         }

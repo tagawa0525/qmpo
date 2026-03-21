@@ -5,23 +5,35 @@
 //! When enabled, writes logs to `~/.local/share/qmpo/qmpo.log` (Linux),
 //! `~/Library/Application Support/qmpo/qmpo.log` (macOS),
 //! or `%LOCALAPPDATA%\qmpo\qmpo.log` (Windows).
+//!
+//! Use the `log_info!` and `log_error!` macros instead of calling functions
+//! directly. When the `logging` feature is disabled, the macros expand to
+//! nothing and `format!()` arguments are never evaluated.
 
 /// Log an info message. No-op unless built with the `logging` feature.
 #[cfg(not(feature = "logging"))]
-pub fn info(_message: &str) {}
+macro_rules! log_info {
+    ($($arg:tt)*) => {};
+}
 
 /// Log an error message. No-op unless built with the `logging` feature.
 #[cfg(not(feature = "logging"))]
-pub fn error(_message: &str) {}
-
-#[cfg(feature = "logging")]
-pub fn info(message: &str) {
-    log("INFO", message);
+macro_rules! log_error {
+    ($($arg:tt)*) => {};
 }
 
 #[cfg(feature = "logging")]
-pub fn error(message: &str) {
-    log("ERROR", message);
+macro_rules! log_info {
+    ($($arg:tt)*) => {
+        $crate::log::_write("INFO", &format!($($arg)*))
+    };
+}
+
+#[cfg(feature = "logging")]
+macro_rules! log_error {
+    ($($arg:tt)*) => {
+        $crate::log::_write("ERROR", &format!($($arg)*))
+    };
 }
 
 #[cfg(feature = "logging")]
@@ -49,8 +61,9 @@ fn log_path() -> Option<PathBuf> {
 }
 
 /// Write a log entry. Silently fails if logging is not possible.
+/// Use `log_info!` / `log_error!` macros instead of calling this directly.
 #[cfg(feature = "logging")]
-fn log(level: &str, message: &str) {
+pub fn _write(level: &str, message: &str) {
     let Some(path) = log_path() else {
         return;
     };
