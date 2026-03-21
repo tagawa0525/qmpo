@@ -77,10 +77,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 
     // Install qmpo to %PROGRAMFILES%\qmpo\
     let install_dir = install_dir()?;
-    check_install_permissions(
-        &install_dir,
-        "run as Administrator, or use the install script (scripts\\install.ps1)",
-    )?;
+    check_install_permissions(&install_dir, ADMIN_HINT)?;
 
     let installed_path = install_dir.join("qmpo.exe");
     if qmpo_path != installed_path {
