@@ -273,6 +273,22 @@ mod tests {
         assert_eq!(uri.path(), &PathBuf::from("\\\\server\\share"));
     }
 
+    // UNC 4-slash form tests (directory:////server/share/...)
+    // The 4-slash → backslash conversion is Windows-only.
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn test_unc_four_slash() {
+        let uri = DirectoryUri::parse("directory:////server/share/folder").unwrap();
+        assert_eq!(uri.path(), &PathBuf::from("\\\\server\\share\\folder"));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn test_unc_four_slash_percent_encoded() {
+        let uri = DirectoryUri::parse("directory:////server/share/My%20Files").unwrap();
+        assert_eq!(uri.path(), &PathBuf::from("\\\\server\\share\\My Files"));
+    }
+
     // Special characters tests
     #[test]
     fn test_percent_encoded_special_chars() {
