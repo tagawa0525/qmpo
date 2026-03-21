@@ -21,8 +21,6 @@ use std::path::{Path, PathBuf};
 use directories::BaseDirs;
 use serde::Deserialize;
 
-use crate::log;
-
 /// Top-level configuration.
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 #[serde(default)]

@@ -4,11 +4,11 @@
 
 #![windows_subsystem = "windows"]
 
+#[macro_use]
+mod log;
 #[cfg(target_os = "windows")]
 mod config;
 mod error;
-#[macro_use]
-mod log;
 mod uri;
 
 #[cfg(target_os = "windows")]
