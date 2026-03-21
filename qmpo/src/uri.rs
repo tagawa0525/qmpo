@@ -111,7 +111,7 @@ impl DirectoryUri {
         // handle //server/... form, so convert explicitly to \\server\... here.
         #[cfg(target_os = "windows")]
         if after_scheme.starts_with("//") {
-            let after_double_slash = decoded.strip_prefix("//").unwrap_or(&decoded);
+            let after_double_slash = decoded.strip_prefix("//").unwrap();
             let unc = format!("\\\\{}", after_double_slash.replace('/', "\\"));
             return Ok(PathBuf::from(unc));
         }
