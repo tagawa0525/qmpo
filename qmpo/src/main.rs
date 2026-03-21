@@ -4,11 +4,13 @@
 
 #![windows_subsystem = "windows"]
 
+#[cfg(target_os = "windows")]
 mod config;
 mod error;
 mod log;
 mod uri;
 
+#[cfg(target_os = "windows")]
 use std::net::{IpAddr, ToSocketAddrs};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
@@ -172,6 +174,7 @@ fn open_in_file_manager(_path: &Path) -> Result<(), Box<dyn std::error::Error>> 
 /// Supports both:
 ///   - Standard UNC: `\\server\share` → `server`
 ///   - Extended UNC: `\\?\UNC\server\share` → `server`
+#[cfg(target_os = "windows")]
 fn extract_unc_server(path: &Path) -> Option<String> {
     let s = path.to_str()?;
     let rest = s
@@ -188,10 +191,12 @@ fn extract_unc_server(path: &Path) -> Option<String> {
 /// Note: There is an inherent TOCTOU gap between this DNS check and the subsequent
 /// filesystem access (`path.exists()`). Exploiting this would require DNS cache
 /// poisoning between the two calls, which is a low-probability attack vector.
+#[cfg(target_os = "windows")]
 fn validate_unc_server(server: &str) -> Result<(), Box<dyn std::error::Error>> {
     validate_unc_server_with_config(server, &config::Config::load())
 }
 
+#[cfg(target_os = "windows")]
 fn validate_unc_server_with_config(
     server: &str,
     config: &config::Config,
@@ -234,6 +239,7 @@ fn validate_unc_server_with_config(
     Ok(())
 }
 
+#[cfg(target_os = "windows")]
 fn is_private_ip(ip: IpAddr) -> bool {
     match ip {
         IpAddr::V4(v4) => v4.is_private() || v4.is_loopback() || v4.is_link_local(),
@@ -245,7 +251,7 @@ fn is_private_ip(ip: IpAddr) -> bool {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "windows"))]
 mod unc_tests {
     use super::*;
     use std::path::PathBuf;

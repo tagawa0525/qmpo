@@ -1,6 +1,6 @@
 # Maintainer: tagawa <tagawa0525@users.noreply.github.com>
 pkgname=qmpo-git
-pkgver=0.1.0.r17.gbae44e7
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="directory:// URI handler for opening directories in your file manager"
 arch=('x86_64' 'aarch64')
@@ -19,7 +19,7 @@ pkgver() {
     local ver
     ver=$(git describe --long --tags 2>/dev/null | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g')
     if [[ -z "$ver" ]]; then
-        printf "0.1.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+        printf "0.2.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
     else
         echo "$ver"
     fi
