@@ -73,6 +73,24 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
         .set_value("", &command)
         .map_err(|e| LauError::Registry(e.to_string()))?;
 
+    // Set browser policies to suppress protocol launch confirmation dialog.
+    // AutoLaunchProtocolsFromOrigins allows the directory:// protocol to launch
+    // without the "{server} wants to open this application" prompt.
+    let policy_value =
+        r#"{"protocol":"directory","allowed_origins":["*"]}"#;
+
+    for browser_path in [
+        r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
+        r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
+    ] {
+        let (policy_key, _) = hkcu
+            .create_subkey(browser_path)
+            .map_err(|e| LauError::Registry(e.to_string()))?;
+        policy_key
+            .set_value("1", &policy_value)
+            .map_err(|e| LauError::Registry(e.to_string()))?;
+    }
+
     println!("Registered qmpo as handler for directory:// URIs");
     Ok(())
 }
@@ -85,6 +103,18 @@ pub fn unregister() -> Result<()> {
     if let Ok(classes) = hkcu.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
         let _ = classes.delete_subkey_all(PROTOCOL_NAME);
         println!("Removed registry entries");
+    }
+
+    // Remove browser policy keys
+    for browser_path in [
+        r"Software\Policies\Microsoft\Edge",
+        r"Software\Policies\Google\Chrome",
+    ] {
+        if let Ok(browser_key) =
+            hkcu.open_subkey_with_flags(browser_path, KEY_WRITE)
+        {
+            let _ = browser_key.delete_subkey_all("AutoLaunchProtocolsFromOrigins");
+        }
     }
 
     // Remove installed binary
@@ -125,6 +155,26 @@ pub fn status() -> Result<()> {
         }
         Err(_) => {
             println!("Registry: not registered");
+        }
+    }
+
+    // Check browser policies
+    for (name, browser_path) in [
+        ("Edge", r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins"),
+        ("Chrome", r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins"),
+    ] {
+        match hkcu.open_subkey(browser_path) {
+            Ok(key) => {
+                let value: std::result::Result<String, _> = key.get_value("1");
+                if let Ok(v) = value {
+                    println!("{name} auto-launch policy: {v}");
+                } else {
+                    println!("{name} auto-launch policy: key exists (no value)");
+                }
+            }
+            Err(_) => {
+                println!("{name} auto-launch policy: not set");
+            }
         }
     }
 
