@@ -49,7 +49,9 @@ fn run(uri_str: &str) -> Result<(), Box<dyn std::error::Error>> {
         return Err(format!("Path does not exist: {}", path.display()).into());
     }
 
-    // Canonicalize to resolve symlinks and prevent path traversal attacks.
+    // Canonicalize to resolve symlinks and normalize the path.
+    // This is best-effort normalization only — when the fallback below is taken,
+    // no symlink resolution or traversal prevention is guaranteed.
     // For UNC network paths with ABE (Access-Based Enumeration), canonicalize()
     // may fail with Access Denied (os error 5) even when the path is accessible,
     // because it traverses each ancestor directory internally.
