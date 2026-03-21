@@ -126,10 +126,11 @@
     <th>Why it is needed</th>
   </tr>
   <tr>
-    <td><code>&lt;all_urls&gt;</code></td>
+    <td>Site access (host permission): <code>&lt;all_urls&gt;</code></td>
     <td>
-      The content script must run on every page to detect <code>file://</code>
-      links. No page content is collected or transmitted.
+      Declared as a host permission in Manifest V3 so the content script can
+      run on all pages to detect <code>file://</code> links. No page content
+      is collected or transmitted.
     </td>
   </tr>
   <tr>
