@@ -27,12 +27,12 @@ Explorer.
 Download qmpo from
 [GitHub Releases](https://github.com/tagawa0525/qmpo/releases):
 
-| OS | Download |
-| --- | --- |
-| Windows | `qmpo-windows-x64.zip` |
-| macOS (Intel) | `qmpo-macos-x64.tar.gz` |
+| OS                    | Download                  |
+| --------------------- | ------------------------- |
+| Windows               | `qmpo-windows-x64.zip`    |
+| macOS (Intel)         | `qmpo-macos-x64.tar.gz`   |
 | macOS (Apple Silicon) | `qmpo-macos-arm64.tar.gz` |
-| Linux | `qmpo-linux-x64.tar.gz` |
+| Linux                 | `qmpo-linux-x64.tar.gz`   |
 
 Or use the install script:
 
@@ -116,6 +116,7 @@ For more details, see the [qmpo repository](https://github.com/tagawa0525/qmpo).
 2. Visit any page with `file://` links (e.g., internal wiki, Confluence)
 
 3. Click a `file://` link - it will open in your file manager with the file
+
    selected
 
 ## Configuration
@@ -152,13 +153,13 @@ qmpo opens file manager with file selected
 
 ## Comparison with Local Explorer
 
-| Feature | Local Explorer | qmpo + Extension |
-| --- | --- | --- |
-| Platform | Windows only | Windows/macOS/Linux |
-| Browser | Chrome/Edge | Chrome/Chromium-based |
-| Communication | Native Messaging API | Custom URI scheme |
-| Behavior | Opens files directly | Opens directory with file selected |
-| Security | Can execute files | Directory only (safer) |
+| Feature       | Local Explorer       | qmpo + Extension                   |
+| ------------- | -------------------- | ---------------------------------- |
+| Platform      | Windows only         | Windows/macOS/Linux                |
+| Browser       | Chrome/Edge          | Chrome/Chromium-based              |
+| Communication | Native Messaging API | Custom URI scheme                  |
+| Behavior      | Opens files directly | Opens directory with file selected |
+| Security      | Can execute files    | Directory only (safer)             |
 
 ## File Structure
 
