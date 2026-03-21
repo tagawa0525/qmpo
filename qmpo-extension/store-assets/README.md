@@ -58,9 +58,9 @@ zip -r ../qmpo-extension.zip . -x "*.md" "*.svg" "store-assets/*"
 
 **ホスト権限:**
 
-> The content script must run on all pages to detect and convert file:// links to directory:// URIs. Without broad host permissions, the extension cannot function on internal wikis, documentation sites, or other pages where file:// links appear. No page data is collected or transmitted.
+> The content script runs on all pages to detect file:// links and convert them to directory:// URIs. Target pages (internal wikis, Confluence, SharePoint) vary by organization, so specific hosts cannot be predetermined. The extension only reads link href attributes — no other page content is accessed or transmitted. The native handler opens directories only (never executes files), blocks non-private UNC paths to prevent NTLM leaks, and validates paths before opening.
 
-（和訳: file:// リンクを検出して directory:// URI に変換するため、コンテンツスクリプトはすべてのページで実行する必要がある。広範なホスト権限がなければ、社内 Wiki やドキュメントサイトなど file:// リンクが存在するページで機能できない。ページデータの収集・送信は一切行わない）
+（和訳: file:// リンクを検出して directory:// に変換するため全ページで実行が必要。対象ページは組織ごとに異なり特定不可。拡張機能は href 属性の読み取りのみ。ネイティブハンドラーはディレクトリのみ開き、非プライベート UNC パスをブロックし NTLM 漏洩を防止、パスを検証してから開く）
 
 ## 5. 配布
 
