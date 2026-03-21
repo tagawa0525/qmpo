@@ -187,6 +187,7 @@ pub fn unregister() -> Result<()> {
                                 &format!("removing policy from HKLM\\{browser_path}"),
                             ));
                         }
+                        eprintln!("Warning: failed to remove policy from HKLM\\{browser_path}: {e}");
                     }
                 }
             }
@@ -325,7 +326,22 @@ pub fn status() -> Result<()> {
                 }
             }
             Err(_) => {
-                println!("{name} auto-launch policy: not set");
+                // Fall back to checking HKCU for legacy policy entries
+                let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+                match hkcu.open_subkey(browser_path) {
+                    Ok(key) => {
+                        if find_directory_policy_entry(&key).is_some() {
+                            println!(
+                                "{name} auto-launch policy: set in HKCU (legacy — run `qmpo-lau register` to migrate to HKLM)"
+                            );
+                        } else {
+                            println!("{name} auto-launch policy: not set");
+                        }
+                    }
+                    Err(_) => {
+                        println!("{name} auto-launch policy: not set");
+                    }
+                }
             }
         }
     }
