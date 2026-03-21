@@ -98,7 +98,7 @@ programs.qmpo.enable = true;
 git clone https://github.com/tagawa0525/qmpo.git
 cd qmpo
 cargo build --release
-./target/release/qmpo-lau register
+sudo ./target/release/qmpo-lau register  # 管理者権限が必要
 ```
 
 ### Chrome拡張機能
