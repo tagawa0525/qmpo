@@ -50,17 +50,11 @@ zip -r ../qmpo-extension.zip . -x "*.md" "*.svg" "store-assets/*"
 
 （和訳: 変換の有効/無効、フォルダアイコンの表示/非表示、ドメインの許可リスト/ブロックリストなどのユーザー設定を保存するため）
 
-**activeTab:**
-
-> Accesses the current tab's URL to check if the domain is in the user's allowlist or blocklist, and to display the extension status in the popup.
-
-（和訳: 現在のタブの URL を取得し、ドメインが許可リスト/ブロックリストに含まれるか確認し、ポップアップに拡張機能の状態を表示するため）
-
 **tabs:**
 
-> Reads the current tab's URL to determine whether file:// link conversion should be active on the current page based on user's domain settings.
+> Creates a temporary tab to trigger the directory:// protocol handler, and removes it after the system handler is invoked.
 
-（和訳: 現在のタブの URL を読み取り、ユーザーのドメイン設定に基づいて file:// リンク変換を有効にすべきか判定するため）
+（和訳: directory:// プロトコルハンドラーを起動するための一時タブを作成し、システムハンドラー呼び出し後にタブを削除するため）
 
 **ホスト権限:**
 
