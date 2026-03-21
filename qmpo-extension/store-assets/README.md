@@ -36,7 +36,7 @@ zip -r ../qmpo-extension.zip . -x "*.md" "*.svg" "store-assets/*"
 
 | 項目                     | 内容                                                                |
 | ------------------------ | ------------------------------------------------------------------- |
-| 単一目的の説明           | Converts file:// links to directory:// scheme to open local folders |
+| 単一目的の説明           | Converts file:// links into directory:// URIs to open local folders |
 | プライバシーポリシー URL | `https://tagawa0525.github.io/qmpo/privacy-policy.html`             |
 | リモートコード           | いいえ                                                              |
 | データ使用の開示         | すべて未選択（データ収集なし）                                      |
