@@ -139,13 +139,19 @@
   </tr>
   <tr>
     <td><code>activeTab</code></td>
-    <td>Interact with the currently active tab.</td>
+    <td>
+      Present in the manifest for forward compatibility. It is not used by the
+      current version of the extension and does not cause any additional data
+      to be collected or transmitted.
+    </td>
   </tr>
   <tr>
     <td><code>tabs</code></td>
     <td>
-      Create a short-lived hidden tab to trigger the
-      <code>directory://</code> protocol handler, then close it automatically.
+      Allow the extension to work with browser tabs when converting links.
+      The current implementation triggers the <code>directory://</code>
+      protocol via a hidden iframe in the content script and does not create
+      or close any additional tabs.
     </td>
   </tr>
 </table>
