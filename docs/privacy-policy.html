@@ -94,10 +94,14 @@
   No data is sent to remote services through these invocations.
 </p>
 <table>
-  <tr><th>Platform</th><th>Programs invoked</th></tr>
-  <tr><td>Windows</td><td><code>explorer.exe</code></td></tr>
-  <tr><td>macOS</td><td><code>open</code></td></tr>
-  <tr><td>Linux</td><td><code>xdg-open</code>, <code>dbus-send</code> (for file selection)</td></tr>
+  <thead>
+    <tr><th scope="col">Platform</th><th scope="col">Programs invoked</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Windows</td><td><code>explorer.exe</code></td></tr>
+    <tr><td>macOS</td><td><code>open</code></td></tr>
+    <tr><td>Linux</td><td><code>xdg-open</code>, <code>dbus-send</code> (for file selection)</td></tr>
+  </tbody>
 </table>
 <p>
   The Chrome Extension triggers the <code>directory://</code> protocol handler
@@ -121,10 +125,13 @@
 
 <h2>Chrome Extension Permissions</h2>
 <table>
-  <tr>
-    <th>Permission</th>
-    <th>Why it is needed</th>
-  </tr>
+  <thead>
+    <tr>
+      <th scope="col">Permission</th>
+      <th scope="col">Why it is needed</th>
+    </tr>
+  </thead>
+  <tbody>
   <tr>
     <td>Site access (host permission): <code>&lt;all_urls&gt;</code></td>
     <td>
@@ -154,6 +161,7 @@
       or close any additional tabs.
     </td>
   </tr>
+  </tbody>
 </table>
 
 <h2>Changes to This Policy</h2>
