@@ -105,6 +105,15 @@ impl DirectoryUri {
 
         let decoded = decode_percent_encoding(after_scheme)?;
 
+        // UNC path via 4-slash form: directory:////server/share/...
+        // After stripping "directory://", after_scheme = "//server/..."
+        // On Windows, PathBuf preserves forward slashes and explorer.exe cannot
+        // handle //server/... form, so convert explicitly to \\server\... here.
+        #[cfg(target_os = "windows")]
+        if after_scheme.starts_with("//") {
+            return Ok(convert_forward_slash_unc_to_backslash(&decoded));
+        }
+
         // Unix absolute path: directory:///home/tagawa -> /home/tagawa
         if after_scheme.starts_with('/') {
             // Also check for Windows drive letter without colon after the leading slash
@@ -169,6 +178,19 @@ fn is_windows_drive_letter_without_colon(s: &str) -> bool {
         (chars.next(), chars.next()),
         (Some(c), Some('/')) if c.is_ascii_alphabetic()
     )
+}
+
+/// Convert a forward-slash UNC-style path (e.g., `//server/share/folder`) to
+/// backslash form (`\\server\share\folder`).
+///
+/// If the input starts with `//`, that prefix is removed before conversion.
+/// Otherwise, the entire string is treated as the server-relative portion
+/// and `\\` is still prepended.
+#[cfg(any(target_os = "windows", test))]
+fn convert_forward_slash_unc_to_backslash(s: &str) -> PathBuf {
+    let server_and_path = s.strip_prefix("//").unwrap_or(s);
+    let unc = format!("\\\\{}", server_and_path.replace('/', "\\"));
+    PathBuf::from(unc)
 }
 
 /// Fix Windows drive letter without colon.
@@ -260,6 +282,48 @@ mod tests {
     fn test_unc_path_root() {
         let uri = DirectoryUri::parse("directory://server/share").unwrap();
         assert_eq!(uri.path(), &PathBuf::from("\\\\server\\share"));
+    }
+
+    // UNC forward-slash → backslash conversion tests
+    // Tests the extracted helper directly so they run on all platforms.
+    #[test]
+    fn test_convert_unc_basic() {
+        assert_eq!(
+            convert_forward_slash_unc_to_backslash("//server/share/folder"),
+            PathBuf::from("\\\\server\\share\\folder"),
+        );
+    }
+
+    #[test]
+    fn test_convert_unc_with_spaces() {
+        assert_eq!(
+            convert_forward_slash_unc_to_backslash("//server/share/My Files"),
+            PathBuf::from("\\\\server\\share\\My Files"),
+        );
+    }
+
+    #[test]
+    fn test_convert_unc_root_share() {
+        assert_eq!(
+            convert_forward_slash_unc_to_backslash("//server/share"),
+            PathBuf::from("\\\\server\\share"),
+        );
+    }
+
+    // End-to-end 4-slash tests are Windows-only because the cfg gate in
+    // extract_path only compiles the conversion call on Windows.
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn test_unc_four_slash_end_to_end() {
+        let uri = DirectoryUri::parse("directory:////server/share/folder").unwrap();
+        assert_eq!(uri.path(), &PathBuf::from("\\\\server\\share\\folder"));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn test_unc_four_slash_percent_encoded_end_to_end() {
+        let uri = DirectoryUri::parse("directory:////server/share/My%20Files").unwrap();
+        assert_eq!(uri.path(), &PathBuf::from("\\\\server\\share\\My Files"));
     }
 
     // Special characters tests
