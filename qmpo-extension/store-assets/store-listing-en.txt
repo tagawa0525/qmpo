@@ -20,3 +20,6 @@ Download from: https://github.com/tagawa0525/qmpo
 
 Privacy:
 No data is collected or transmitted. All processing happens locally in your browser.
+
+---
+日本語: qmpo は file:// リンクを directory:// スキームに変換し、ファイルマネージャーでフォルダを開きます。qmpo URI ハンドラーのインストールが必要です (https://github.com/tagawa0525/qmpo)。
