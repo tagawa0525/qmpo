@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - qmpo Chrome Extension</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.7;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+      color: #24292f;
+      background: #fff;
+    }
+    h1 { font-size: 1.6rem; border-bottom: 1px solid #d0d7de; padding-bottom: 0.4rem; }
+    h2 { font-size: 1.2rem; margin-top: 2rem; }
+    a { color: #0969da; }
+    ul { padding-left: 1.4rem; }
+    li { margin-bottom: 0.3rem; }
+    .updated { color: #656d76; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+<h1>Privacy Policy — qmpo Chrome Extension</h1>
+<p class="updated">Last updated: 2026-03-22</p>
+
+<h2>Overview</h2>
+<p>
+  qmpo ("the Extension") converts <code>file://</code> links on web pages to
+  <code>directory://</code> links so that clicking them opens the corresponding
+  folder in your operating system's file manager.
+  The Extension is open-source under the
+  <a href="https://github.com/tagawa0525/qmpo/blob/main/LICENSE">MIT License</a>.
+</p>
+
+<h2>Data Collection</h2>
+<p>The Extension does <strong>not</strong> collect, transmit, or store any personal data. Specifically:</p>
+<ul>
+  <li>No browsing history, page content, or URLs are sent to any external server.</li>
+  <li>No analytics, telemetry, or tracking of any kind is included.</li>
+  <li>No cookies are set or read by the Extension.</li>
+  <li>No user accounts or authentication are required.</li>
+</ul>
+
+<h2>Local Storage</h2>
+<p>
+  The Extension uses <code>chrome.storage.sync</code> solely to persist your
+  preferences (enabled/disabled state, folder-icon indicator toggle, and
+  domain allowlist/blocklist). This data is synced across your Chrome
+  profile by Chrome's built-in sync mechanism and is never sent to any
+  third-party service.
+</p>
+
+<h2>Permissions</h2>
+<table style="border-collapse:collapse;width:100%">
+  <tr style="border-bottom:1px solid #d0d7de">
+    <th style="text-align:left;padding:0.4rem 0.8rem">Permission</th>
+    <th style="text-align:left;padding:0.4rem 0.8rem">Why it is needed</th>
+  </tr>
+  <tr style="border-bottom:1px solid #d0d7de">
+    <td style="padding:0.4rem 0.8rem"><code>&lt;all_urls&gt;</code></td>
+    <td style="padding:0.4rem 0.8rem">
+      The content script must run on every page to detect <code>file://</code>
+      links. No page content is collected or transmitted.
+    </td>
+  </tr>
+  <tr style="border-bottom:1px solid #d0d7de">
+    <td style="padding:0.4rem 0.8rem"><code>storage</code></td>
+    <td style="padding:0.4rem 0.8rem">Save and sync user preferences across devices.</td>
+  </tr>
+  <tr style="border-bottom:1px solid #d0d7de">
+    <td style="padding:0.4rem 0.8rem"><code>activeTab</code></td>
+    <td style="padding:0.4rem 0.8rem">Interact with the currently active tab.</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem"><code>tabs</code></td>
+    <td style="padding:0.4rem 0.8rem">
+      Create a short-lived hidden tab to trigger the
+      <code>directory://</code> protocol handler, then close it automatically.
+    </td>
+  </tr>
+</table>
+
+<h2>Third-Party Services</h2>
+<p>The Extension does not communicate with any external servers or third-party services.</p>
+
+<h2>Changes to This Policy</h2>
+<p>
+  If this policy is updated, the changes will be published at this URL and the
+  "Last updated" date above will be revised. Significant changes will also be
+  noted in the Extension's release notes.
+</p>
+
+<h2>Contact</h2>
+<p>
+  For questions or concerns about this policy, please open an issue at
+  <a href="https://github.com/tagawa0525/qmpo/issues">github.com/tagawa0525/qmpo/issues</a>.
+</p>
+
+</body>
+</html>
