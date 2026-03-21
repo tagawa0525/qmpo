@@ -70,9 +70,10 @@ Download the latest release from [GitHub Releases](https://github.com/tagawa0525
 
 1. Download `qmpo-windows-x64.zip`
 2. Extract the archive
-3. Run `qmpo-lau.exe` (double-click or run from command prompt)
+3. Run `qmpo-lau.exe` as Administrator (right-click → "Run as administrator")
 
 This will automatically register qmpo as the `directory://` protocol handler.
+Administrator privileges are required because registration writes to `HKLM` and `%PROGRAMFILES%`.
 
 ### Arch Linux
 
