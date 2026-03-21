@@ -22,7 +22,7 @@ fn registry_error(e: io::Error, operation: &str) -> LauError {
             hint: ADMIN_HINT.to_string(),
         }
     } else {
-        LauError::Registry(e.to_string())
+        LauError::Registry(format!("{operation}: {e}"))
     }
 }
 
