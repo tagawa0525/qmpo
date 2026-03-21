@@ -169,12 +169,12 @@ fn open_in_file_manager(_path: &Path) -> Result<(), Box<dyn std::error::Error>> 
     Err("Unsupported operating system".into())
 }
 
-#[cfg(target_os = "windows")]
 /// Extract the server name from a UNC path.
 ///
 /// Supports both:
 ///   - Standard UNC: `\\server\share` → `server`
 ///   - Extended UNC: `\\?\UNC\server\share` → `server`
+#[cfg(target_os = "windows")]
 fn extract_unc_server(path: &Path) -> Option<String> {
     let s = path.to_str()?;
     let rest = s
@@ -184,7 +184,6 @@ fn extract_unc_server(path: &Path) -> Option<String> {
     Some(server.to_string())
 }
 
-#[cfg(target_os = "windows")]
 /// Verify that a UNC server is either whitelisted in config.toml or resolves
 /// only to private/link-local IP addresses.
 /// Rejects external servers to prevent NTLM credential leaks via rogue SMB servers.
@@ -192,6 +191,7 @@ fn extract_unc_server(path: &Path) -> Option<String> {
 /// Note: There is an inherent TOCTOU gap between this DNS check and the subsequent
 /// filesystem access (`path.exists()`). Exploiting this would require DNS cache
 /// poisoning between the two calls, which is a low-probability attack vector.
+#[cfg(target_os = "windows")]
 fn validate_unc_server(server: &str) -> Result<(), Box<dyn std::error::Error>> {
     validate_unc_server_with_config(server, &config::Config::load())
 }
