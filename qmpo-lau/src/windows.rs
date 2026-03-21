@@ -63,8 +63,14 @@ fn next_policy_slot(key: &RegKey) -> String {
 /// Browser policy registry paths for AutoLaunchProtocolsFromOrigins.
 /// Each entry is `(display_name, registry_path)`.
 const BROWSER_POLICY_PATHS: [(&str, &str); 2] = [
-    ("Edge", r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins"),
-    ("Chrome", r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins"),
+    (
+        "Edge",
+        r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
+    ),
+    (
+        "Chrome",
+        r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
+    ),
 ];
 
 pub fn register(path: Option<PathBuf>) -> Result<()> {
@@ -160,16 +166,16 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 /// previous versions. Errors are silently ignored since these are best-effort.
 fn clean_legacy_hkcu() {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    if let Ok(classes) = hkcu.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
-        if classes.open_subkey(PROTOCOL_NAME).is_ok() {
-            let _ = classes.delete_subkey_all(PROTOCOL_NAME);
-        }
+    if let Ok(classes) = hkcu.open_subkey_with_flags("Software\\Classes", KEY_WRITE)
+        && classes.open_subkey(PROTOCOL_NAME).is_ok()
+    {
+        let _ = classes.delete_subkey_all(PROTOCOL_NAME);
     }
     for (_, browser_path) in BROWSER_POLICY_PATHS {
-        if let Ok(policy_key) = hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE) {
-            if let Some(name) = find_directory_policy_entry(&policy_key) {
-                let _ = policy_key.delete_value(&name);
-            }
+        if let Ok(policy_key) = hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE)
+            && let Some(name) = find_directory_policy_entry(&policy_key)
+        {
+            let _ = policy_key.delete_value(&name);
         }
     }
 }
