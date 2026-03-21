@@ -95,9 +95,10 @@ fn open_in_file_manager(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         let raw = format!("/select,\"{}\"", path.to_string_lossy());
         Command::new("explorer.exe").raw_arg(&raw).spawn()?;
     } else {
-        Command::new("explorer.exe")
-            .raw_arg(format!("\"{}\"", path.to_string_lossy()))
-            .spawn()?;
+        // For the plain directory case, rely on Rust/Windows CreateProcess
+        // argument handling instead of manual quoting, so that paths ending
+        // with a backslash (e.g. drive roots like D:\) are handled correctly.
+        Command::new("explorer.exe").arg(path).spawn()?;
     }
     Ok(())
 }
