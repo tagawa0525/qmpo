@@ -284,6 +284,9 @@ pub fn status() -> Result<()> {
                 }
             }
         }
+        Err(e) if e.kind() == io::ErrorKind::PermissionDenied => {
+            eprintln!("Warning: cannot read HKLM registry (access denied)");
+        }
         Err(_) => {
             // Fall back to checking HKCU for legacy registrations
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
@@ -323,6 +326,9 @@ pub fn status() -> Result<()> {
                 } else {
                     println!("{name} auto-launch policy: not set");
                 }
+            }
+            Err(e) if e.kind() == io::ErrorKind::PermissionDenied => {
+                eprintln!("Warning: cannot read HKLM {name} policy (access denied)");
             }
             Err(_) => {
                 // Fall back to checking HKCU for legacy policy entries
