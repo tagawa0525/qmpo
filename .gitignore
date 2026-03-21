@@ -1,5 +1,6 @@
 /target
 /result
+/.claude
 
 # AUR build artifacts
 /aur/src/

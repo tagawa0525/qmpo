@@ -4,19 +4,16 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
-use directories::BaseDirs;
 use plist::Value;
 
-use crate::{LauError, Result, find_qmpo_executable};
+use crate::{LauError, Result, check_install_permissions, find_qmpo_executable};
 
 const APP_NAME: &str = "qmpo.app";
 const BUNDLE_ID: &str = "com.github.qmpo";
+pub const APPLICATIONS_DIR: &str = "/Applications";
 const LSREGISTER_PATH: &str = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
 
 pub fn register(path: Option<PathBuf>) -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-    let home_dir = base_dirs.home_dir();
-
     let qmpo_path = path.map_or_else(find_qmpo_executable, Ok)?;
 
     if !qmpo_path.exists() {
@@ -25,9 +22,12 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
         ));
     }
 
-    // Create app bundle at ~/Applications/qmpo.app
-    let applications_dir = home_dir.join("Applications");
-    fs::create_dir_all(&applications_dir)?;
+    // Create app bundle at /Applications/qmpo.app
+    let applications_dir = PathBuf::from(APPLICATIONS_DIR);
+    check_install_permissions(
+        &applications_dir,
+        "run with sudo, or use the install script (scripts/install.sh)",
+    )?;
 
     let app_bundle = applications_dir.join(APP_NAME);
     let contents_dir = app_bundle.join("Contents");
@@ -70,8 +70,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 }
 
 pub fn unregister() -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-    let app_bundle = base_dirs.home_dir().join("Applications").join(APP_NAME);
+    let app_bundle = PathBuf::from(APPLICATIONS_DIR).join(APP_NAME);
 
     if app_bundle.exists() {
         // Unregister from Launch Services (ignore errors)
@@ -81,8 +80,25 @@ pub fn unregister() -> Result<()> {
                 .status();
         }
 
-        fs::remove_dir_all(&app_bundle)?;
-        println!("Removed: {}", app_bundle.display());
+        match fs::remove_dir_all(&app_bundle) {
+            Ok(()) => println!("Removed: {}", app_bundle.display()),
+            Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+                return Err(LauError::PermissionDenied {
+                    operation: format!("removing {}", app_bundle.display()),
+                    hint: "run with sudo".into(),
+                });
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
+
+    // Clean up legacy install location (~/Applications/qmpo.app)
+    if let Some(base_dirs) = directories::BaseDirs::new() {
+        let legacy_bundle = base_dirs.home_dir().join("Applications").join(APP_NAME);
+        if legacy_bundle.exists() {
+            let _ = fs::remove_dir_all(&legacy_bundle);
+            println!("Removed legacy install: {}", legacy_bundle.display());
+        }
     }
 
     println!("Unregistered qmpo");
@@ -90,9 +106,7 @@ pub fn unregister() -> Result<()> {
 }
 
 pub fn status() -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-
-    let app_bundle = base_dirs.home_dir().join("Applications").join(APP_NAME);
+    let app_bundle = PathBuf::from(APPLICATIONS_DIR).join(APP_NAME);
     let executable = app_bundle.join("Contents/MacOS/qmpo");
 
     if executable.exists() {

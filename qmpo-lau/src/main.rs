@@ -13,6 +13,20 @@ mod windows;
 
 pub use error::{LauError, Result};
 
+/// Check write access to an install directory and return a helpful error if insufficient.
+pub fn check_install_permissions(dir: &std::path::Path, hint: &str) -> Result<()> {
+    match std::fs::create_dir_all(dir) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+            Err(LauError::PermissionDenied {
+                operation: format!("installing to {}", dir.display()),
+                hint: hint.into(),
+            })
+        }
+        Err(e) => Err(LauError::Io(e)),
+    }
+}
+
 #[derive(Parser, Debug)]
 #[command(name = "qmpo-lau")]
 #[command(about = "Registration tool for qmpo - Open Directory With Browser")]
@@ -79,6 +93,16 @@ pub fn find_qmpo_executable() -> Result<PathBuf> {
 
     // Current directory
     candidates.push(current_dir.join(QMPO_EXECUTABLE_NAME));
+
+    // Machine-wide install location
+    #[cfg(target_os = "windows")]
+    if let Ok(pf) = std::env::var("PROGRAMFILES") {
+        candidates.push(PathBuf::from(pf).join("qmpo").join(QMPO_EXECUTABLE_NAME));
+    }
+    #[cfg(target_os = "macos")]
+    candidates.push(PathBuf::from(macos::APPLICATIONS_DIR).join("qmpo.app/Contents/MacOS/qmpo"));
+    #[cfg(target_os = "linux")]
+    candidates.push(PathBuf::from(linux::INSTALL_DIR).join(QMPO_EXECUTABLE_NAME));
 
     // target/release and target/debug
     candidates.push(

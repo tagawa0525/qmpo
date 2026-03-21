@@ -3,23 +3,31 @@
 use std::fs;
 use std::path::PathBuf;
 
-use directories::BaseDirs;
 use winreg::RegKey;
 use winreg::enums::*;
 
-use crate::{LauError, Result, find_qmpo_executable};
+use crate::{LauError, Result, check_install_permissions, find_qmpo_executable};
 
 const PROTOCOL_NAME: &str = "directory";
 
+/// Returns the machine-wide install directory (`%PROGRAMFILES%\qmpo`).
+fn install_dir() -> Result<PathBuf> {
+    Ok(PathBuf::from(
+        std::env::var("PROGRAMFILES").map_err(|_| LauError::EnvVarNotSet("PROGRAMFILES".into()))?,
+    )
+    .join("qmpo"))
+}
+
 /// Find an existing policy value whose JSON contains `"protocol":"directory"`.
 /// Returns the value name (e.g. "1", "2") if found.
+#[allow(clippy::collapsible_if)]
 fn find_directory_policy_entry(key: &RegKey) -> Option<String> {
     for entry in key.enum_values().flatten() {
         let value_name = entry.0;
-        if let Ok(s) = key.get_value::<String, _>(&value_name)
-            && s.contains(r#""protocol":"directory""#)
-        {
-            return Some(value_name);
+        if let Ok(s) = key.get_value::<String, _>(&value_name) {
+            if s.contains(r#""protocol":"directory""#) {
+                return Some(value_name);
+            }
         }
     }
     None
@@ -37,8 +45,6 @@ fn next_policy_slot(key: &RegKey) -> String {
 }
 
 pub fn register(path: Option<PathBuf>) -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-
     let qmpo_path = path.map_or_else(find_qmpo_executable, Ok)?;
 
     if !qmpo_path.exists() {
@@ -47,9 +53,12 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
         ));
     }
 
-    // Install qmpo to %LOCALAPPDATA%\qmpo\
-    let install_dir = base_dirs.data_local_dir().join("qmpo");
-    fs::create_dir_all(&install_dir)?;
+    // Install qmpo to %PROGRAMFILES%\qmpo\
+    let install_dir = install_dir()?;
+    check_install_permissions(
+        &install_dir,
+        "run as Administrator, or use the install script (scripts\\install.ps1)",
+    )?;
 
     let installed_path = install_dir.join("qmpo.exe");
     if qmpo_path != installed_path {
@@ -125,9 +134,8 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::collapsible_if)]
 pub fn unregister() -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-
     // Remove registry keys
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok(classes) = hkcu.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
@@ -141,18 +149,29 @@ pub fn unregister() -> Result<()> {
         r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
         r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
     ] {
-        if let Ok(policy_key) = hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE)
-            && let Some(name) = find_directory_policy_entry(&policy_key)
-        {
-            let _ = policy_key.delete_value(&name);
+        if let Ok(policy_key) = hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE) {
+            if let Some(name) = find_directory_policy_entry(&policy_key) {
+                let _ = policy_key.delete_value(&name);
+            }
         }
     }
 
-    // Remove installed binary
-    let install_dir = base_dirs.data_local_dir().join("qmpo");
-    if install_dir.exists() {
-        let _ = fs::remove_dir_all(&install_dir);
-        println!("Removed: {}", install_dir.display());
+    // Remove installed binary (current location)
+    if let Ok(install_dir) = install_dir() {
+        if install_dir.exists() {
+            let _ = fs::remove_dir_all(&install_dir);
+            println!("Removed: {}", install_dir.display());
+        }
+    }
+
+    // Clean up legacy install location (%LOCALAPPDATA%\qmpo)
+    if let Some(base_dirs) = directories::BaseDirs::new() {
+        let legacy_dir = base_dirs.data_local_dir().join("qmpo");
+        let legacy_exe = legacy_dir.join("qmpo.exe");
+        if legacy_exe.exists() {
+            let _ = fs::remove_dir_all(&legacy_dir);
+            println!("Removed legacy install: {}", legacy_dir.display());
+        }
     }
 
     println!("Unregistered qmpo");
@@ -160,14 +179,19 @@ pub fn unregister() -> Result<()> {
 }
 
 pub fn status() -> Result<()> {
-    let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
-
     // Check installed binary
-    let installed_path = base_dirs.data_local_dir().join("qmpo").join("qmpo.exe");
-    if installed_path.exists() {
-        println!("qmpo binary: {} (installed)", installed_path.display());
-    } else {
-        println!("qmpo binary: not installed");
+    match install_dir() {
+        Ok(dir) => {
+            let installed_path = dir.join("qmpo.exe");
+            if installed_path.exists() {
+                println!("qmpo binary: {} (installed)", installed_path.display());
+            } else {
+                println!("qmpo binary: not installed");
+            }
+        }
+        Err(_) => {
+            println!("qmpo binary: not installed (PROGRAMFILES not set)");
+        }
     }
 
     // Check registry — protocol handler

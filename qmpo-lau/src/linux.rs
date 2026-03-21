@@ -6,10 +6,11 @@ use std::process::Command;
 
 use directories::BaseDirs;
 
-use crate::{LauError, Result, find_qmpo_executable};
+use crate::{LauError, Result, check_install_permissions, find_qmpo_executable};
 
 const DESKTOP_FILE_NAME: &str = "qmpo.desktop";
 const MIME_TYPE: &str = "x-scheme-handler/directory";
+pub const INSTALL_DIR: &str = "/usr/local/bin";
 
 pub fn register(path: Option<PathBuf>) -> Result<()> {
     let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
@@ -23,9 +24,12 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
         ));
     }
 
-    // Install qmpo to ~/.local/bin/
-    let local_bin = home_dir.join(".local/bin");
-    fs::create_dir_all(&local_bin)?;
+    // Install qmpo to /usr/local/bin/
+    let local_bin = PathBuf::from(INSTALL_DIR);
+    check_install_permissions(
+        &local_bin,
+        "run with sudo, or use the install script (scripts/install.sh)",
+    )?;
 
     let installed_path = local_bin.join("qmpo");
     if qmpo_path != installed_path {
@@ -95,11 +99,26 @@ pub fn unregister() -> Result<()> {
         .arg(&applications_dir)
         .status();
 
-    // Remove installed binary
-    let installed_path = home_dir.join(".local/bin/qmpo");
+    // Remove installed binary (current location)
+    let installed_path = PathBuf::from(INSTALL_DIR).join("qmpo");
     if installed_path.exists() {
-        fs::remove_file(&installed_path)?;
-        println!("Removed: {}", installed_path.display());
+        match fs::remove_file(&installed_path) {
+            Ok(()) => println!("Removed: {}", installed_path.display()),
+            Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+                return Err(LauError::PermissionDenied {
+                    operation: format!("removing {}", installed_path.display()),
+                    hint: "run with sudo".into(),
+                });
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
+
+    // Clean up legacy install location (~/.local/bin/qmpo)
+    let legacy_path = home_dir.join(".local/bin/qmpo");
+    if legacy_path.exists() {
+        let _ = fs::remove_file(&legacy_path);
+        println!("Removed legacy install: {}", legacy_path.display());
     }
 
     println!("Unregistered qmpo");
@@ -111,7 +130,7 @@ pub fn status() -> Result<()> {
     let home_dir = base_dirs.home_dir();
 
     // Check installed binary
-    let installed_path = home_dir.join(".local/bin/qmpo");
+    let installed_path = PathBuf::from(INSTALL_DIR).join("qmpo");
     if installed_path.exists() {
         println!("qmpo binary: {} (installed)", installed_path.display());
     } else {
