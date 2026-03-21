@@ -24,7 +24,10 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 
     // Create app bundle at /Applications/qmpo.app
     let applications_dir = PathBuf::from(APPLICATIONS_DIR);
-    check_install_permissions(&applications_dir, "run with sudo, or use the install script (scripts/install.sh)")?;
+    check_install_permissions(
+        &applications_dir,
+        "run with sudo, or use the install script (scripts/install.sh)",
+    )?;
 
     let app_bundle = applications_dir.join(APP_NAME);
     let contents_dir = app_bundle.join("Contents");
@@ -77,8 +80,16 @@ pub fn unregister() -> Result<()> {
                 .status();
         }
 
-        fs::remove_dir_all(&app_bundle)?;
-        println!("Removed: {}", app_bundle.display());
+        match fs::remove_dir_all(&app_bundle) {
+            Ok(()) => println!("Removed: {}", app_bundle.display()),
+            Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+                return Err(LauError::PermissionDenied {
+                    operation: format!("removing {}", app_bundle.display()),
+                    hint: "run with sudo".into(),
+                });
+            }
+            Err(e) => return Err(e.into()),
+        }
     }
 
     // Clean up legacy install location (~/Applications/qmpo.app)

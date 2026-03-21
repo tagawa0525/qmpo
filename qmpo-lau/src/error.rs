@@ -28,12 +28,11 @@ pub enum LauError {
     EnvVarNotSet(String),
 
     /// Operation requires elevated privileges (admin/root).
-    #[error("{operation} requires elevated privileges.\n  \
-             Hint: {hint}")]
-    PermissionDenied {
-        operation: String,
-        hint: String,
-    },
+    #[error(
+        "{operation} requires elevated privileges.\n  \
+             Hint: {hint}"
+    )]
+    PermissionDenied { operation: String, hint: String },
 
     /// IO error during file operations.
     #[error("IO error: {0}")]

@@ -1,6 +1,6 @@
 //! Configuration file handling for qmpo.
 //!
-//! Loads `config.toml` from two locations and merges them (user overrides machine):
+//! Loads `config.toml` from two locations and merges them (user extends machine):
 //!
 //! Machine-wide (organization):
 //! - Windows: `%PROGRAMDATA%\qmpo\config.toml`
@@ -109,12 +109,17 @@ impl Config {
     }
 
     /// Merge user partial config over self (machine config).
-    /// Only fields explicitly set in the user config override the machine values.
+    /// User values are *additive* — machine policy entries cannot be removed.
+    #[allow(clippy::collapsible_if)]
     fn merge(mut self, user: PartialConfig) -> Self {
-        if let Some(security) = user.security
-            && let Some(allowed_servers) = security.allowed_servers
-        {
-            self.security.allowed_servers = allowed_servers;
+        if let Some(security) = user.security {
+            if let Some(user_servers) = security.allowed_servers {
+                for server in user_servers {
+                    if !self.security.is_server_allowed(&server) {
+                        self.security.allowed_servers.push(server);
+                    }
+                }
+            }
         }
         self
     }
@@ -130,7 +135,9 @@ fn machine_config_path() -> Option<PathBuf> {
     }
     #[cfg(target_os = "macos")]
     {
-        Some(PathBuf::from("/Library/Application Support/qmpo/config.toml"))
+        Some(PathBuf::from(
+            "/Library/Application Support/qmpo/config.toml",
+        ))
     }
     #[cfg(target_os = "linux")]
     {
@@ -152,12 +159,7 @@ fn user_config_path() -> Option<PathBuf> {
     }
     #[cfg(not(target_os = "linux"))]
     {
-        Some(
-            base_dirs
-                .data_local_dir()
-                .join("qmpo")
-                .join("config.toml"),
-        )
+        Some(base_dirs.data_local_dir().join("qmpo").join("config.toml"))
     }
 }
 
@@ -257,7 +259,7 @@ allowed_servers = "not-an-array"
     }
 
     #[test]
-    fn test_merge_user_overrides_machine() {
+    fn test_merge_user_extends_machine() {
         let machine = Config {
             security: SecurityConfig {
                 allowed_servers: vec!["machine-server.com".to_string()],
@@ -271,7 +273,7 @@ allowed_servers = "not-an-array"
         let merged = machine.merge(user);
         assert_eq!(
             merged.security.allowed_servers,
-            vec!["user-server.com"]
+            vec!["machine-server.com", "user-server.com"]
         );
     }
 
@@ -284,14 +286,11 @@ allowed_servers = "not-an-array"
         };
         let user = PartialConfig { security: None };
         let merged = machine.merge(user);
-        assert_eq!(
-            merged.security.allowed_servers,
-            vec!["machine-server.com"]
-        );
+        assert_eq!(merged.security.allowed_servers, vec!["machine-server.com"]);
     }
 
     #[test]
-    fn test_merge_user_empty_servers_clears_machine() {
+    fn test_merge_user_empty_servers_keeps_machine() {
         let machine = Config {
             security: SecurityConfig {
                 allowed_servers: vec!["machine-server.com".to_string()],
@@ -303,7 +302,29 @@ allowed_servers = "not-an-array"
             }),
         };
         let merged = machine.merge(user);
-        assert!(merged.security.allowed_servers.is_empty());
+        assert_eq!(merged.security.allowed_servers, vec!["machine-server.com"]);
+    }
+
+    #[test]
+    fn test_merge_deduplicates_case_insensitive() {
+        let machine = Config {
+            security: SecurityConfig {
+                allowed_servers: vec!["Server.COM".to_string()],
+            },
+        };
+        let user = PartialConfig {
+            security: Some(PartialSecurityConfig {
+                allowed_servers: Some(vec![
+                    "server.com".to_string(),
+                    "new.example.com".to_string(),
+                ]),
+            }),
+        };
+        let merged = machine.merge(user);
+        assert_eq!(
+            merged.security.allowed_servers,
+            vec!["Server.COM", "new.example.com"]
+        );
     }
 
     #[test]
@@ -319,10 +340,7 @@ allowed_servers = "not-an-array"
             }),
         };
         let merged = machine.merge(user);
-        assert_eq!(
-            merged.security.allowed_servers,
-            vec!["machine-server.com"]
-        );
+        assert_eq!(merged.security.allowed_servers, vec!["machine-server.com"]);
     }
 
     #[test]

@@ -191,7 +191,7 @@ register_macos_uri_scheme() {
 
     # Run qmpo-lau to register (it handles the plist creation)
     if [ -x "$INSTALL_DIR/qmpo-lau" ]; then
-        "$INSTALL_DIR/qmpo-lau" register 2>/dev/null || true
+        run_privileged "$INSTALL_DIR/qmpo-lau" register 2>/dev/null || true
         log INFO "URI scheme registered via qmpo-lau"
     else
         log WARN "qmpo-lau not found, skipping URI registration"

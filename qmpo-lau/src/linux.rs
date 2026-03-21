@@ -26,7 +26,10 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 
     // Install qmpo to /usr/local/bin/
     let local_bin = PathBuf::from(INSTALL_DIR);
-    check_install_permissions(&local_bin, "run with sudo, or use the install script (scripts/install.sh)")?;
+    check_install_permissions(
+        &local_bin,
+        "run with sudo, or use the install script (scripts/install.sh)",
+    )?;
 
     let installed_path = local_bin.join("qmpo");
     if qmpo_path != installed_path {
@@ -99,8 +102,16 @@ pub fn unregister() -> Result<()> {
     // Remove installed binary (current location)
     let installed_path = PathBuf::from(INSTALL_DIR).join("qmpo");
     if installed_path.exists() {
-        fs::remove_file(&installed_path)?;
-        println!("Removed: {}", installed_path.display());
+        match fs::remove_file(&installed_path) {
+            Ok(()) => println!("Removed: {}", installed_path.display()),
+            Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+                return Err(LauError::PermissionDenied {
+                    operation: format!("removing {}", installed_path.display()),
+                    hint: "run with sudo".into(),
+                });
+            }
+            Err(e) => return Err(e.into()),
+        }
     }
 
     // Clean up legacy install location (~/.local/bin/qmpo)

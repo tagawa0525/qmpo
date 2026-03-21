@@ -13,21 +13,21 @@ const PROTOCOL_NAME: &str = "directory";
 /// Returns the machine-wide install directory (`%PROGRAMFILES%\qmpo`).
 fn install_dir() -> Result<PathBuf> {
     Ok(PathBuf::from(
-        std::env::var("PROGRAMFILES")
-            .map_err(|_| LauError::EnvVarNotSet("PROGRAMFILES".into()))?,
+        std::env::var("PROGRAMFILES").map_err(|_| LauError::EnvVarNotSet("PROGRAMFILES".into()))?,
     )
     .join("qmpo"))
 }
 
 /// Find an existing policy value whose JSON contains `"protocol":"directory"`.
 /// Returns the value name (e.g. "1", "2") if found.
+#[allow(clippy::collapsible_if)]
 fn find_directory_policy_entry(key: &RegKey) -> Option<String> {
     for entry in key.enum_values().flatten() {
         let value_name = entry.0;
-        if let Ok(s) = key.get_value::<String, _>(&value_name)
-            && s.contains(r#""protocol":"directory""#)
-        {
-            return Some(value_name);
+        if let Ok(s) = key.get_value::<String, _>(&value_name) {
+            if s.contains(r#""protocol":"directory""#) {
+                return Some(value_name);
+            }
         }
     }
     None
@@ -55,7 +55,10 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 
     // Install qmpo to %PROGRAMFILES%\qmpo\
     let install_dir = install_dir()?;
-    check_install_permissions(&install_dir, "run as Administrator, or use the install script (scripts\\install.ps1)")?;
+    check_install_permissions(
+        &install_dir,
+        "run as Administrator, or use the install script (scripts\\install.ps1)",
+    )?;
 
     let installed_path = install_dir.join("qmpo.exe");
     if qmpo_path != installed_path {
@@ -131,6 +134,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::collapsible_if)]
 pub fn unregister() -> Result<()> {
     // Remove registry keys
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
@@ -145,10 +149,10 @@ pub fn unregister() -> Result<()> {
         r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
         r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
     ] {
-        if let Ok(policy_key) = hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE)
-            && let Some(name) = find_directory_policy_entry(&policy_key)
-        {
-            let _ = policy_key.delete_value(&name);
+        if let Ok(policy_key) = hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE) {
+            if let Some(name) = find_directory_policy_entry(&policy_key) {
+                let _ = policy_key.delete_value(&name);
+            }
         }
     }
 
@@ -176,11 +180,18 @@ pub fn unregister() -> Result<()> {
 
 pub fn status() -> Result<()> {
     // Check installed binary
-    let installed_path = install_dir()?.join("qmpo.exe");
-    if installed_path.exists() {
-        println!("qmpo binary: {} (installed)", installed_path.display());
-    } else {
-        println!("qmpo binary: not installed");
+    match install_dir() {
+        Ok(dir) => {
+            let installed_path = dir.join("qmpo.exe");
+            if installed_path.exists() {
+                println!("qmpo binary: {} (installed)", installed_path.display());
+            } else {
+                println!("qmpo binary: not installed");
+            }
+        }
+        Err(_) => {
+            println!("qmpo binary: not installed (PROGRAMFILES not set)");
+        }
     }
 
     // Check registry — protocol handler
