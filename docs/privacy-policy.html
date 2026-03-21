@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Policy - qmpo Chrome Extension</title>
+  <title>Privacy Policy - qmpo</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -16,82 +16,144 @@
     }
     h1 { font-size: 1.6rem; border-bottom: 1px solid #d0d7de; padding-bottom: 0.4rem; }
     h2 { font-size: 1.2rem; margin-top: 2rem; }
+    h3 { font-size: 1.05rem; margin-top: 1.4rem; }
     a { color: #0969da; }
     ul { padding-left: 1.4rem; }
     li { margin-bottom: 0.3rem; }
     .updated { color: #656d76; font-size: 0.9rem; }
+    table { border-collapse: collapse; width: 100%; }
+    th { text-align: left; padding: 0.4rem 0.8rem; border-bottom: 2px solid #d0d7de; }
+    td { padding: 0.4rem 0.8rem; border-bottom: 1px solid #d0d7de; }
   </style>
 </head>
 <body>
 
-<h1>Privacy Policy — qmpo Chrome Extension</h1>
+<h1>Privacy Policy — qmpo</h1>
 <p class="updated">Last updated: 2026-03-22</p>
 
 <h2>Overview</h2>
 <p>
-  qmpo ("the Extension") converts <code>file://</code> links on web pages to
-  <code>directory://</code> links so that clicking them opens the corresponding
-  folder in your operating system's file manager.
-  The Extension is open-source under the
+  qmpo is a <code>directory://</code> URI scheme handler that opens directories in
+  your file manager. It consists of three components:
+</p>
+<ul>
+  <li><strong>qmpo</strong> — the URI handler that receives <code>directory://</code> URIs and opens them in your file manager</li>
+  <li><strong>qmpo-lau</strong> — a registration tool that sets up qmpo as the system's protocol handler</li>
+  <li><strong>Chrome Extension</strong> — converts <code>file://</code> links to <code>directory://</code> on web pages</li>
+</ul>
+<p>
+  All components are open-source under the
   <a href="https://github.com/tagawa0525/qmpo/blob/main/LICENSE">MIT License</a>.
 </p>
 
 <h2>Data Collection</h2>
-<p>The Extension does <strong>not</strong> collect, transmit, or store any personal data. Specifically:</p>
+<p>qmpo does <strong>not</strong> collect, transmit, or store any personal data. Specifically:</p>
 <ul>
-  <li>No browsing history, page content, or URLs are sent to any external server.</li>
-  <li>No analytics, telemetry, or tracking of any kind is included.</li>
-  <li>No cookies are set or read by the Extension.</li>
+  <li>No data is sent to any external server, analytics service, or third party.</li>
+  <li>No telemetry or tracking of any kind is included in any component.</li>
   <li>No user accounts or authentication are required.</li>
 </ul>
 
-<h2>Local Storage</h2>
+<h2>Data Stored Locally</h2>
+
+<h3>qmpo (URI handler)</h3>
+<ul>
+  <li>
+    <strong>Log file</strong> — qmpo writes an operational log to the local filesystem
+    (<code>qmpo.log</code>) containing timestamps, received URIs, and parsed paths.
+    This file is stored in your user data directory and is never transmitted.
+    It is automatically rotated at 1 MB.
+  </li>
+  <li>
+    <strong>Configuration</strong> — qmpo reads a local <code>config.toml</code> file
+    for security settings (UNC server allowlist). This file is read-only and
+    managed by the user or system administrator.
+  </li>
+</ul>
+
+<h3>Chrome Extension</h3>
+<ul>
+  <li>
+    <strong>User preferences</strong> — the extension uses <code>chrome.storage.sync</code>
+    to persist your settings (enabled/disabled state, folder-icon indicator toggle,
+    and domain allowlist/blocklist). This data is synced across your Chrome profile
+    by Chrome's built-in sync mechanism and is never sent to any third-party service.
+  </li>
+</ul>
+
+<h3>qmpo-lau (registration tool)</h3>
+<ul>
+  <li>qmpo-lau does not store any data. It registers the <code>directory://</code>
+    protocol handler with the operating system (Windows Registry, macOS Launch Services,
+    or Linux XDG MIME) and then exits.</li>
+</ul>
+
+<h2>External Programs</h2>
 <p>
-  The Extension uses <code>chrome.storage.sync</code> solely to persist your
-  preferences (enabled/disabled state, folder-icon indicator toggle, and
-  domain allowlist/blocklist). This data is synced across your Chrome
-  profile by Chrome's built-in sync mechanism and is never sent to any
-  third-party service.
+  qmpo invokes the following system programs to open directories in your file manager.
+  No data is sent to remote services through these invocations.
+</p>
+<table>
+  <tr><th>Platform</th><th>Programs invoked</th></tr>
+  <tr><td>Windows</td><td><code>explorer.exe</code></td></tr>
+  <tr><td>macOS</td><td><code>open</code></td></tr>
+  <tr><td>Linux</td><td><code>xdg-open</code>, <code>dbus-send</code> (for file selection)</td></tr>
+</table>
+<p>
+  The Chrome Extension triggers the <code>directory://</code> protocol handler
+  registered by qmpo-lau, which in turn launches the qmpo binary on your machine.
 </p>
 
-<h2>Permissions</h2>
-<table style="border-collapse:collapse;width:100%">
-  <tr style="border-bottom:1px solid #d0d7de">
-    <th style="text-align:left;padding:0.4rem 0.8rem">Permission</th>
-    <th style="text-align:left;padding:0.4rem 0.8rem">Why it is needed</th>
+<h2>Network Access</h2>
+<p>
+  qmpo makes <strong>no</strong> outbound network connections, with one exception:
+</p>
+<ul>
+  <li>
+    <strong>Windows UNC path validation</strong> — when a <code>directory://</code>
+    URI points to a UNC network path (e.g., <code>\\server\share</code>), qmpo
+    performs a local DNS lookup to verify that the server resolves to a private IP
+    address. This prevents NTLM credential leaks to rogue external servers. The DNS
+    query is handled by the operating system's resolver; no custom network requests
+    are made.
+  </li>
+</ul>
+
+<h2>Chrome Extension Permissions</h2>
+<table>
+  <tr>
+    <th>Permission</th>
+    <th>Why it is needed</th>
   </tr>
-  <tr style="border-bottom:1px solid #d0d7de">
-    <td style="padding:0.4rem 0.8rem"><code>&lt;all_urls&gt;</code></td>
-    <td style="padding:0.4rem 0.8rem">
+  <tr>
+    <td><code>&lt;all_urls&gt;</code></td>
+    <td>
       The content script must run on every page to detect <code>file://</code>
       links. No page content is collected or transmitted.
     </td>
   </tr>
-  <tr style="border-bottom:1px solid #d0d7de">
-    <td style="padding:0.4rem 0.8rem"><code>storage</code></td>
-    <td style="padding:0.4rem 0.8rem">Save and sync user preferences across devices.</td>
-  </tr>
-  <tr style="border-bottom:1px solid #d0d7de">
-    <td style="padding:0.4rem 0.8rem"><code>activeTab</code></td>
-    <td style="padding:0.4rem 0.8rem">Interact with the currently active tab.</td>
+  <tr>
+    <td><code>storage</code></td>
+    <td>Save and sync user preferences across devices.</td>
   </tr>
   <tr>
-    <td style="padding:0.4rem 0.8rem"><code>tabs</code></td>
-    <td style="padding:0.4rem 0.8rem">
+    <td><code>activeTab</code></td>
+    <td>Interact with the currently active tab.</td>
+  </tr>
+  <tr>
+    <td><code>tabs</code></td>
+    <td>
       Create a short-lived hidden tab to trigger the
       <code>directory://</code> protocol handler, then close it automatically.
     </td>
   </tr>
 </table>
 
-<h2>Third-Party Services</h2>
-<p>The Extension does not communicate with any external servers or third-party services.</p>
-
 <h2>Changes to This Policy</h2>
 <p>
   If this policy is updated, the changes will be published at this URL and the
   "Last updated" date above will be revised. Significant changes will also be
-  noted in the Extension's release notes.
+  noted in the release notes.
 </p>
 
 <h2>Contact</h2>
