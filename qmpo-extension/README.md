@@ -115,9 +115,7 @@ For more details, see the [qmpo repository](https://github.com/tagawa0525/qmpo).
 
 2. Visit any page with `file://` links (e.g., internal wiki, Confluence)
 
-3. Click a `file://` link - it will open in your file manager with the file
-
-   selected
+3. Click a `file://` link - it will open in your file manager with the file selected
 
 ## Configuration
 
