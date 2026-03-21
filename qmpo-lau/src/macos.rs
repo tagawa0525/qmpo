@@ -6,26 +6,12 @@ use std::process::Command;
 
 use plist::Value;
 
-use crate::{LauError, Result, find_qmpo_executable};
+use crate::{LauError, Result, check_install_permissions, find_qmpo_executable};
 
 const APP_NAME: &str = "qmpo.app";
 const BUNDLE_ID: &str = "com.github.qmpo";
 pub const APPLICATIONS_DIR: &str = "/Applications";
 const LSREGISTER_PATH: &str = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
-
-/// Check write access and return a helpful error if insufficient.
-fn check_install_permissions(dir: &std::path::Path) -> Result<()> {
-    match fs::create_dir_all(dir) {
-        Ok(()) => Ok(()),
-        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-            Err(LauError::PermissionDenied {
-                operation: format!("installing to {}", dir.display()),
-                hint: "run with sudo, or use the install script (scripts/install.sh)".into(),
-            })
-        }
-        Err(e) => Err(LauError::Io(e)),
-    }
-}
 
 pub fn register(path: Option<PathBuf>) -> Result<()> {
     let qmpo_path = path.map_or_else(find_qmpo_executable, Ok)?;
@@ -38,7 +24,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 
     // Create app bundle at /Applications/qmpo.app
     let applications_dir = PathBuf::from(APPLICATIONS_DIR);
-    check_install_permissions(&applications_dir)?;
+    check_install_permissions(&applications_dir, "run with sudo, or use the install script (scripts/install.sh)")?;
 
     let app_bundle = applications_dir.join(APP_NAME);
     let contents_dir = app_bundle.join("Contents");

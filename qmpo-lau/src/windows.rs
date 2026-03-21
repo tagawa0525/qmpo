@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use winreg::RegKey;
 use winreg::enums::*;
 
-use crate::{LauError, Result, find_qmpo_executable};
+use crate::{LauError, Result, check_install_permissions, find_qmpo_executable};
 
 const PROTOCOL_NAME: &str = "directory";
 
@@ -17,22 +17,6 @@ fn install_dir() -> Result<PathBuf> {
             .map_err(|_| LauError::EnvVarNotSet("PROGRAMFILES".into()))?,
     )
     .join("qmpo"))
-}
-
-/// Check write access and return a helpful error if insufficient.
-fn check_install_permissions(dir: &std::path::Path) -> Result<()> {
-    // Try creating the directory; if it fails with PermissionDenied, give guidance.
-    match fs::create_dir_all(dir) {
-        Ok(()) => Ok(()),
-        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-            Err(LauError::PermissionDenied {
-                operation: format!("installing to {}", dir.display()),
-                hint: "run as Administrator, or use the install script (scripts\\install.ps1)"
-                    .into(),
-            })
-        }
-        Err(e) => Err(LauError::Io(e)),
-    }
 }
 
 /// Find an existing policy value whose JSON contains `"protocol":"directory"`.
@@ -71,7 +55,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 
     // Install qmpo to %PROGRAMFILES%\qmpo\
     let install_dir = install_dir()?;
-    check_install_permissions(&install_dir)?;
+    check_install_permissions(&install_dir, "run as Administrator, or use the install script (scripts\\install.ps1)")?;
 
     let installed_path = install_dir.join("qmpo.exe");
     if qmpo_path != installed_path {
@@ -169,10 +153,11 @@ pub fn unregister() -> Result<()> {
     }
 
     // Remove installed binary (current location)
-    let install_dir = install_dir()?;
-    if install_dir.exists() {
-        let _ = fs::remove_dir_all(&install_dir);
-        println!("Removed: {}", install_dir.display());
+    if let Ok(install_dir) = install_dir() {
+        if install_dir.exists() {
+            let _ = fs::remove_dir_all(&install_dir);
+            println!("Removed: {}", install_dir.display());
+        }
     }
 
     // Clean up legacy install location (%LOCALAPPDATA%\qmpo)

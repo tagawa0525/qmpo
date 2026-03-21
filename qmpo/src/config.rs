@@ -12,7 +12,8 @@
 //! - macOS: `~/Library/Application Support/qmpo/config.toml`
 //! - Linux: `~/.config/qmpo/config.toml`
 //!
-//! The environment variable `QMPO_CONFIG_DIR` overrides both paths when set.
+//! The environment variable `QMPO_CONFIG_DIR` overrides the **user** config
+//! path (not the machine path), so organization policy always applies.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -53,22 +54,23 @@ struct PartialSecurityConfig {
 
 impl Config {
     /// Load configuration by merging machine-wide and user configs.
-    /// `QMPO_CONFIG_DIR` overrides both when set.
+    /// `QMPO_CONFIG_DIR` overrides the user config path (machine policy always applies).
     /// Returns `Config::default()` if no config files exist or cannot be parsed.
     pub fn load() -> Self {
-        // QMPO_CONFIG_DIR override takes highest priority
-        if let Ok(dir) = std::env::var("QMPO_CONFIG_DIR") {
-            let path = PathBuf::from(dir).join("config.toml");
-            return Self::load_from(&path).unwrap_or_default();
-        }
-
-        // Load machine config as base
+        // Load machine config as base (always applies — org policy)
         let machine = machine_config_path()
             .and_then(|p| Self::load_from(&p))
             .unwrap_or_default();
 
+        // QMPO_CONFIG_DIR overrides the user config path, not the machine config
+        let user_path = if let Ok(dir) = std::env::var("QMPO_CONFIG_DIR") {
+            Some(PathBuf::from(dir).join("config.toml"))
+        } else {
+            user_config_path()
+        };
+
         // Load user config as overlay (using partial deserialization)
-        let user_partial = user_config_path().and_then(|p| Self::load_partial_from(&p));
+        let user_partial = user_path.and_then(|p| Self::load_partial_from(&p));
 
         match user_partial {
             Some(partial) => machine.merge(partial),

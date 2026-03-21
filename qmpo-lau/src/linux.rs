@@ -6,25 +6,11 @@ use std::process::Command;
 
 use directories::BaseDirs;
 
-use crate::{LauError, Result, find_qmpo_executable};
+use crate::{LauError, Result, check_install_permissions, find_qmpo_executable};
 
 const DESKTOP_FILE_NAME: &str = "qmpo.desktop";
 const MIME_TYPE: &str = "x-scheme-handler/directory";
 pub const INSTALL_DIR: &str = "/usr/local/bin";
-
-/// Check write access and return a helpful error if insufficient.
-fn check_install_permissions(dir: &std::path::Path) -> Result<()> {
-    match fs::create_dir_all(dir) {
-        Ok(()) => Ok(()),
-        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-            Err(LauError::PermissionDenied {
-                operation: format!("installing to {}", dir.display()),
-                hint: "run with sudo, or use the install script (scripts/install.sh)".into(),
-            })
-        }
-        Err(e) => Err(LauError::Io(e)),
-    }
-}
 
 pub fn register(path: Option<PathBuf>) -> Result<()> {
     let base_dirs = BaseDirs::new().ok_or(LauError::NoUserDirectories)?;
@@ -40,7 +26,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
 
     // Install qmpo to /usr/local/bin/
     let local_bin = PathBuf::from(INSTALL_DIR);
-    check_install_permissions(&local_bin)?;
+    check_install_permissions(&local_bin, "run with sudo, or use the install script (scripts/install.sh)")?;
 
     let installed_path = local_bin.join("qmpo");
     if qmpo_path != installed_path {

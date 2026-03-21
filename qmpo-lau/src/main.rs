@@ -13,6 +13,20 @@ mod windows;
 
 pub use error::{LauError, Result};
 
+/// Check write access to an install directory and return a helpful error if insufficient.
+pub fn check_install_permissions(dir: &std::path::Path, hint: &str) -> Result<()> {
+    match std::fs::create_dir_all(dir) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+            Err(LauError::PermissionDenied {
+                operation: format!("installing to {}", dir.display()),
+                hint: hint.into(),
+            })
+        }
+        Err(e) => Err(LauError::Io(e)),
+    }
+}
+
 #[derive(Parser, Debug)]
 #[command(name = "qmpo-lau")]
 #[command(about = "Registration tool for qmpo - Open Directory With Browser")]
