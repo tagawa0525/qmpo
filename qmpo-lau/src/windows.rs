@@ -61,9 +61,10 @@ fn next_policy_slot(key: &RegKey) -> String {
 }
 
 /// Browser policy registry paths for AutoLaunchProtocolsFromOrigins.
-const BROWSER_POLICY_PATHS: [&str; 2] = [
-    r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
-    r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
+/// Each entry is `(display_name, registry_path)`.
+const BROWSER_POLICY_PATHS: [(&str, &str); 2] = [
+    ("Edge", r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins"),
+    ("Chrome", r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins"),
 ];
 
 pub fn register(path: Option<PathBuf>) -> Result<()> {
@@ -133,7 +134,7 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
     // cannot be overridden by user-level settings.
     let policy_value = r#"{"protocol":"directory","allowed_origins":["*"]}"#;
 
-    for browser_path in BROWSER_POLICY_PATHS {
+    for (_, browser_path) in BROWSER_POLICY_PATHS {
         let (policy_key, _) = hklm
             .create_subkey(browser_path)
             .map_err(|e| registry_error(e, &format!("creating HKLM\\{browser_path}")))?;
@@ -148,8 +149,29 @@ pub fn register(path: Option<PathBuf>) -> Result<()> {
             .map_err(|e| registry_error(e, &format!("writing policy to HKLM\\{browser_path}")))?;
     }
 
+    // Clean up legacy HKCU entries from previous versions
+    clean_legacy_hkcu();
+
     println!("Registered qmpo as handler for directory:// URIs");
     Ok(())
+}
+
+/// Remove legacy HKCU protocol handler and browser policy entries left by
+/// previous versions. Errors are silently ignored since these are best-effort.
+fn clean_legacy_hkcu() {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    if let Ok(classes) = hkcu.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
+        if classes.open_subkey(PROTOCOL_NAME).is_ok() {
+            let _ = classes.delete_subkey_all(PROTOCOL_NAME);
+        }
+    }
+    for (_, browser_path) in BROWSER_POLICY_PATHS {
+        if let Ok(policy_key) = hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE) {
+            if let Some(name) = find_directory_policy_entry(&policy_key) {
+                let _ = policy_key.delete_value(&name);
+            }
+        }
+    }
 }
 
 #[allow(clippy::collapsible_if)]
@@ -173,7 +195,7 @@ pub fn unregister() -> Result<()> {
 
     // Remove only our "directory" protocol entry from HKLM browser policy keys,
     // leaving entries set by other applications intact.
-    for browser_path in BROWSER_POLICY_PATHS {
+    for (_, browser_path) in BROWSER_POLICY_PATHS {
         match hklm.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE) {
             Ok(policy_key) => {
                 if let Some(name) = find_directory_policy_entry(&policy_key) {
@@ -198,20 +220,7 @@ pub fn unregister() -> Result<()> {
     }
 
     // Clean up legacy HKCU entries from previous versions
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    if let Ok(classes) = hkcu.open_subkey_with_flags("Software\\Classes", KEY_WRITE) {
-        if classes.open_subkey(PROTOCOL_NAME).is_ok() {
-            let _ = classes.delete_subkey_all(PROTOCOL_NAME);
-            println!("Removed legacy HKCU registry entries");
-        }
-    }
-    for browser_path in BROWSER_POLICY_PATHS {
-        if let Ok(policy_key) = hkcu.open_subkey_with_flags(browser_path, KEY_READ | KEY_WRITE) {
-            if let Some(name) = find_directory_policy_entry(&policy_key) {
-                let _ = policy_key.delete_value(&name);
-            }
-        }
-    }
+    clean_legacy_hkcu();
 
     // Remove installed binary (current location)
     if let Ok(install_dir) = install_dir() {
@@ -304,16 +313,7 @@ pub fn status() -> Result<()> {
     }
 
     // Check browser policies (HKLM)
-    for (name, browser_path) in [
-        (
-            "Edge",
-            r"Software\Policies\Microsoft\Edge\AutoLaunchProtocolsFromOrigins",
-        ),
-        (
-            "Chrome",
-            r"Software\Policies\Google\Chrome\AutoLaunchProtocolsFromOrigins",
-        ),
-    ] {
+    for (name, browser_path) in BROWSER_POLICY_PATHS {
         match hklm.open_subkey(browser_path) {
             Ok(key) => {
                 if let Some(entry_name) = find_directory_policy_entry(&key) {
