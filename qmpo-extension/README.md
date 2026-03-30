@@ -78,7 +78,7 @@ For more details, see the [qmpo repository](https://github.com/tagawa0525/qmpo).
 
 5. **Verify installation**
 
-   - You should see "qmpo - Open Local Files" in the extensions list
+   - You should see "qmpo - Open Directory With Browser" in the extensions list
    - The extension icon should appear in the toolbar (you may need to pin it)
 
 ### Troubleshooting
