@@ -76,7 +76,7 @@ irm \
 
 5. **インストールの確認**
 
-   - 拡張機能リストに「qmpo - Open Local Files」が表示されること
+   - 拡張機能リストに「qmpo - Open Directory With Browser」が表示されること
    - ツールバーに拡張機能アイコンが表示されること（ピン留めが必要な場合あり）
 
 ### トラブルシューティング
@@ -174,7 +174,7 @@ qmpo-extension/
 Chrome拡張機能の設定ファイル。以下を定義:
 
 - 拡張機能名、バージョン、説明
-- 必要な権限（`storage`, `activeTab`, `tabs`）
+- 必要な権限（`storage`）
 - コンテンツスクリプトの適用範囲
 - バックグラウンドService Workerの指定
 

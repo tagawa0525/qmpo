@@ -1,12 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "qmpo - Open Local Files",
+  "name": "qmpo - Open Directory With Browser",
   "version": "1.0.0",
   "description": "Convert file:// links to directory:// scheme, opening folders in your file manager with the file selected.",
   "permissions": [
-    "storage",
-    "activeTab",
-    "tabs"
+    "storage"
   ],
   "host_permissions": [
     "<all_urls>"
