@@ -174,7 +174,7 @@ qmpo-extension/
 Chrome拡張機能の設定ファイル。以下を定義:
 
 - 拡張機能名、バージョン、説明
-- 必要な権限（`storage`, `activeTab`, `tabs`）
+- 必要な権限（`storage`）
 - コンテンツスクリプトの適用範囲
 - バックグラウンドService Workerの指定
 

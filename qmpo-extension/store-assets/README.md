@@ -50,12 +50,6 @@ zip -r ../qmpo-extension.zip . -x "*.md" "*.svg" "store-assets/*"
 
 （和訳: 変換の有効/無効、フォルダアイコンの表示/非表示、ドメインの許可リスト/ブロックリストなどのユーザー設定を保存するため）
 
-**tabs:**
-
-> Creates a temporary tab to trigger the directory:// protocol handler, and removes it after the system handler is invoked.
-
-（和訳: directory:// プロトコルハンドラーを起動するための一時タブを作成し、システムハンドラー呼び出し後にタブを削除するため）
-
 **ホスト権限:**
 
 > The content script runs on all pages to detect file:// links and convert them to directory:// URIs. Target pages (internal wikis, Confluence, SharePoint) vary by organization, so specific hosts cannot be predetermined. The extension only reads link href attributes — no other page content is accessed or transmitted. The native handler opens directories only (never executes files), blocks non-private UNC paths to prevent NTLM leaks, and validates paths before opening.

@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "description": "Convert file:// links to directory:// scheme, opening folders in your file manager with the file selected.",
   "permissions": [
-    "storage",
-    "tabs"
+    "storage"
   ],
   "host_permissions": [
     "<all_urls>"

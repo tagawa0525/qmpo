@@ -186,7 +186,7 @@ qmpo-extension/
 Chrome extension configuration file. Defines:
 
 - Extension name, version, description
-- Required permissions (`storage`, `activeTab`, `tabs`)
+- Required permissions (`storage`)
 - Content script injection rules
 - Background Service Worker registration
 
