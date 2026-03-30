@@ -52,9 +52,9 @@ zip -r ../qmpo-extension.zip . -x "*.md" "*.svg" "store-assets/*"
 
 **ホスト権限:**
 
-> The content script runs on all pages to detect file:// links and convert them to directory:// URIs. Target pages (internal wikis, Confluence, SharePoint) vary by organization, so specific hosts cannot be predetermined. The extension only reads link href attributes — no other page content is accessed or transmitted. The native handler opens directories only (never executes files), blocks non-private UNC paths to prevent NTLM leaks, and validates paths before opening.
+> The content script runs on pages covered by the host permissions to detect file:// links and convert them to directory:// URIs. Target pages (internal wikis, Confluence, SharePoint, etc.) vary by organization, so specific hosts cannot be predetermined. The script reads window.location.hostname for allow/block decisions and scans the DOM for \<a\> elements, inspecting their href attributes to decorate and convert eligible links. No other page content is transmitted outside the browser. The native handler opens the system file manager at the specified path (opening folders and, for file paths, showing the file in its containing folder), never executes files directly, blocks non-private UNC paths to prevent NTLM leaks, and validates paths before opening.
 
-（和訳: file:// リンクを検出して directory:// に変換するため全ページで実行が必要。対象ページは組織ごとに異なり特定不可。拡張機能は href 属性の読み取りのみ。ネイティブハンドラーはディレクトリのみ開き、非プライベート UNC パスをブロックし NTLM 漏洩を防止、パスを検証してから開く）
+（和訳: file:// リンクを検出して directory:// に変換するため、ホスト権限の範囲内のページでコンテントスクリプトを実行します。対象となるページ（社内 Wiki、Confluence、SharePoint など）は組織ごとに異なり、事前に特定できません。コンテントスクリプトは window.location.hostname を参照してドメインの許可/ブロック判定を行い、DOM を走査して \<a\> 要素を検出し、その href 属性を読み取って対象リンクを装飾・変換します。それ以外のページ内容がブラウザ外へ送信されることはありません。ネイティブハンドラーは指定されたパスをファイルマネージャーで開き（フォルダパスの場合はそのフォルダを、ファイルパスの場合はそのファイルを含むフォルダを選択状態で表示し）、ファイルを直接実行することはありません。また、非プライベートな UNC パスをブロックして NTLM 漏洩を防止し、パスを検証してから開きます。）
 
 ## 5. 配布
 
