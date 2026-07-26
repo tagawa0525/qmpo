@@ -12,3 +12,6 @@
 
 # Chrome extension build artifacts
 /qmpo-extension.zip
+
+# direnv (nix-direnv) が生成する devShell のキャッシュ
+/.direnv
